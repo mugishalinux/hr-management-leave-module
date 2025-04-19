@@ -1,0 +1,51 @@
+package com.leave.management.system.controller;
+
+import com.leave.management.system.dto.response.ResponseDto;
+import com.leave.management.system.dto.team.CreateTeamDto;
+import com.leave.management.system.dto.team.UpdateTeamDto;
+import com.leave.management.system.model.Department;
+import com.leave.management.system.model.Team;
+import com.leave.management.system.service.team.TeamService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/teams")
+@RequiredArgsConstructor
+public class TeamController {
+
+    private final TeamService teamService;
+
+    @PostMapping
+    public ResponseEntity<ResponseDto> createTeam(@Valid @RequestBody CreateTeamDto dto) {
+        return new ResponseEntity<>(teamService.createTeam(dto), HttpStatus.CREATED);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<Team>> getAllTeams(
+            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
+        return ResponseEntity.ok(teamService.getAllTeams(pageable));
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<Team> getTeamById(@PathVariable String id) {
+        return ResponseEntity.ok( teamService.getTeamById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ResponseDto> updateTeam(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateTeamDto dto) {
+        return ResponseEntity.ok(teamService.updateTeam(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseDto> deleteTeam(@PathVariable String id) {
+        return ResponseEntity.ok(teamService.deleteTeam(id));
+    }
+}

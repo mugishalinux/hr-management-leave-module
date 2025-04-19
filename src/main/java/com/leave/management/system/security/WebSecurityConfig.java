@@ -1,7 +1,5 @@
 package com.leave.management.system.security;
 
-import com.leave.management.system.constants.ServerRoutes;
-import com.leave.management.system.model.Permissions;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -60,15 +58,9 @@ public class WebSecurityConfig {
                 .securityContext(context -> context.securityContextRepository(securityCtxRepository))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(whiteList).permitAll()
-                        .requestMatchers("/api/users/test").authenticated()
-                        .requestMatchers(ServerRoutes.POST).hasAuthority(Permissions.POST_MANAGEMENT.name())
-                        .requestMatchers(ServerRoutes.POST_GET).hasAuthority(Permissions.POST_MANAGEMENT.name())
-                        .requestMatchers(ServerRoutes.POST_DELETE).hasAuthority(Permissions.POST_MANAGEMENT.name())
-                        .requestMatchers(ServerRoutes.POST_UPDATE).hasAuthority(Permissions.POST_MANAGEMENT.name())
-                        .requestMatchers(ServerRoutes.POST_GET_BY_ID).hasAuthority(Permissions.POST_MANAGEMENT.name())
-                        .requestMatchers(ServerRoutes.POST_SEARCH).hasAuthority(Permissions.POST_MANAGEMENT.name())
-                        .requestMatchers(ServerRoutes.LIKE).hasAuthority(Permissions.POST_MANAGEMENT.name())
-                        .requestMatchers(ServerRoutes.COMMENT).hasAuthority(Permissions.POST_MANAGEMENT.name())
+                        .requestMatchers("/api/users/test").hasAuthority("ADMIN")
+                        .requestMatchers("/api/departments").hasAuthority("ADMIN")
+                        .requestMatchers("/api/teams").hasAuthority("MANAGER")
                         .anyRequest().permitAll() // ✅ allow any other request for now (dev mode)
                 );
 

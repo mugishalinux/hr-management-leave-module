@@ -20,12 +20,5 @@ public class LeaveManagementApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(LeaveManagementApplication.class, args);
 	}
-	@Bean
-	public TomcatProtocolHandlerCustomizer<?> protocolHandlerVirtualThreadExecutorCustomizer() {
-		return protocolHandler -> {
-			log.info("Configuring " + protocolHandler + " to use VirtualThreadPerTaskExecutor");
-			protocolHandler.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-		};
 
-	}
 }

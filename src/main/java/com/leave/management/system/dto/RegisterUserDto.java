@@ -14,5 +14,4 @@ public class RegisterUserDto {
 
     // Optionally, allow setting roles if needed
     private String permissions = "USER_MANAGEMENT";
-    private String role;
 }
