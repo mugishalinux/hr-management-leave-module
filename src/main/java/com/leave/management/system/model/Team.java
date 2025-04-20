@@ -10,10 +10,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Team extends BaseEntity {
-
-    @Id
-    private String id = UUID.randomUUID().toString();
-
     @Column(nullable = false, unique = true)
     private String name;
 

@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface TeamService {
     ResponseDto createTeam(CreateTeamDto dto);
-    Page<Team> getAllTeams(Pageable pageable);
+    Page<Team> getAllTeams(int page, int sizePage, String sortBy);
     ResponseDto updateTeam(String id, UpdateTeamDto dto);
     ResponseDto deleteTeam(String id);
     Team getTeamById(String id);

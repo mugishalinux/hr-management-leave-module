@@ -20,8 +20,6 @@ import java.util.UUID;
 @Table(name = "department")
 
 public class Department extends BaseEntity {
-    @Id
-    public String id = UUID.randomUUID().toString();
     @Column(nullable = false, unique = true)
     private String name;
     @Column(nullable = false)

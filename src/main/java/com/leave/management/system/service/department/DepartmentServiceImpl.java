@@ -4,14 +4,16 @@ import com.leave.management.system.dto.department.CreateDepartmentDto;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.exceptions.ApiRequestException;
 import com.leave.management.system.model.Department;
+import com.leave.management.system.model.Team;
 import com.leave.management.system.model.User;
 import com.leave.management.system.repository.DepartmentRepository;
 import com.leave.management.system.security.SecurityUtils;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import java.util.List;
 
 @Service
 public class DepartmentServiceImpl implements DepartmentService {
@@ -46,14 +48,13 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
-    public Page<Department> getAllDepartments(Pageable pageable) {
-        return departmentRepository.findAll(pageable);
+    public Page<Department> getAllDepartments(int page, int sizePage, String sortBy) {
+        return departmentRepository.findAll(PageRequest.of(page, sizePage,  Sort.by(Sort.Direction.ASC, sortBy)));
     }
 
     @Override
     public Department getDepartmentById(String id) {
-        return departmentRepository.findById(id)
-                .orElseThrow(() -> new ApiRequestException("Department not found"));
+        return departmentRepository.findById(id).orElseThrow(() -> new ApiRequestException("Department not found"));
     }
 
     @Override

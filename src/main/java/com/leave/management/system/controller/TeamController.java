@@ -29,8 +29,10 @@ public class TeamController {
 
     @GetMapping
     public ResponseEntity<Page<Team>> getAllTeams(
-            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
-        return ResponseEntity.ok(teamService.getAllTeams(pageable));
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int sizePage,
+            @RequestParam(defaultValue = "name") String sortBy) {
+        return ResponseEntity.ok(teamService.getAllTeams(page, sizePage, sortBy));
     }
     @GetMapping("/{id}")
     public ResponseEntity<Team> getTeamById(@PathVariable String id) {

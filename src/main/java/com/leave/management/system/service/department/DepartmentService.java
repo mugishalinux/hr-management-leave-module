@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface DepartmentService {
     ResponseDto createDepartment(CreateDepartmentDto createDepartmentDto);
-    Page<Department> getAllDepartments(Pageable pageable);
+    Page<Department> getAllDepartments(int page, int sizePage, String sortBy);
     Department getDepartmentById(String id);
     ResponseDto updateDepartment(String id, CreateDepartmentDto createDepartmentDto);
     ResponseDto deleteDepartment(String id);

@@ -15,7 +15,9 @@ import com.leave.management.system.repository.UserRepository;
 import com.leave.management.system.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -59,8 +61,8 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
-    public Page<Team> getAllTeams(Pageable pageable) {
-        return teamRepository.findAll(pageable);
+    public Page<Team> getAllTeams(int page, int sizePage, String sortBy) {
+        return teamRepository.findAll(PageRequest.of(page, sizePage,  Sort.by(Sort.Direction.ASC, sortBy)));
     }
     public  Team getTeamById(String id) {
         return teamRepository.findById(id).orElseThrow(() -> new ApiRequestException("Team not found"));

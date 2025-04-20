@@ -5,12 +5,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @MappedSuperclass
 @Getter
 @Setter
 public abstract class BaseEntity {
-
+    @Id
+    public String id = UUID.randomUUID().toString();
     @ManyToOne
     @JoinColumn(name = "created_by", updatable = false)
     private User createdBy;

@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @Service
 public class JwtService {
     public final long LONGEVITY_JWT = 60 * 60 * 1000;
-    private final long LONGEVITY_OTP = 45 * 60 * 1000;
+    private final long LONGEVITY_OTP = 45 * 600 * 1000;
     private final int KEY_SIZE = 32;
     private final String ISSUER_NAME = "Otp";
     private final String CLAIM_ROLE = "roles";

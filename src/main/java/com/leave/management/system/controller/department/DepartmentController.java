@@ -29,8 +29,10 @@ public class DepartmentController {
 
     @GetMapping
     public ResponseEntity<Page<Department>> getAllDepartments(
-            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
-        return ResponseEntity.ok(departmentService.getAllDepartments(pageable));
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int sizePage,
+            @RequestParam(defaultValue = "name") String sortBy) {
+        return ResponseEntity.ok(departmentService.getAllDepartments(page, sizePage, sortBy));
     }
     @GetMapping("/{id}")
     public Department getById(@PathVariable String id) {

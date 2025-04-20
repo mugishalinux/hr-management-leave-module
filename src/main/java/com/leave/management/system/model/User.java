@@ -21,9 +21,7 @@ import java.util.stream.Collectors;
 @Entity
 @Table(name = "user")
 
-public class User {
-    @Id
-    public String id = UUID.randomUUID().toString();
+public class User  extends BaseEntity{
     protected String username;
     @JsonIgnore
     protected String password;
@@ -32,22 +30,12 @@ public class User {
     protected String permissions;
 
     @JsonIgnore
-    protected boolean firstAuth = true;
-    @JsonIgnore
-    protected boolean accountExpired = false;
-    @JsonIgnore
     protected boolean accountLocked = false;
     @JsonIgnore
     protected boolean credentialsExpired = false;
     protected boolean accountEnabled = true;
 
-    @JsonIgnore
-    protected int risk;
 
-//    @PrePersist
-//    protected void runBeforeSave(){
-//        this.permissions =  String.join(", ", this.authorityList.stream().map(auth -> auth.getAuthority()).collect(Collectors.toList()));
-//    }
 
 
     public User(String username, String password) {
@@ -75,20 +63,6 @@ public class User {
         return permissions;
     }
 
-    @Override
-    public String toString() {
-        return "User{" +
-                "id='" + id + '\'' +
-                ", username='" + username + '\'' +
-                ", password='" + password + '\'' +
-                ", authorityList=" + authorityList +
-                ", permissions='" + permissions + '\'' +
-                ", firstAuth=" + firstAuth +
-                ", accountExpired=" + accountExpired +
-                ", accountLocked=" + accountLocked +
-                ", credentialsExpired=" + credentialsExpired +
-                ", accountEnabled=" + accountEnabled +
-                ", risk=" + risk +
-                '}';
-    }
+
+
 }

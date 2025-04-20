@@ -61,6 +61,8 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/users/test").hasAuthority("ADMIN")
                         .requestMatchers("/api/departments").hasAuthority("ADMIN")
                         .requestMatchers("/api/teams").hasAuthority("MANAGER")
+                        .requestMatchers("/api/leave-type").hasAuthority("ADMIN")
+                        .requestMatchers("/api/leave-policy").hasAuthority("ADMIN")
                         .anyRequest().permitAll() // ✅ allow any other request for now (dev mode)
                 );
 
