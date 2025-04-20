@@ -58,7 +58,9 @@ public class WebSecurityConfig {
                 .securityContext(context -> context.securityContextRepository(securityCtxRepository))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(whiteList).permitAll()
-                        .requestMatchers("/api/users/test").hasAuthority("ADMIN")
+                        .requestMatchers("/api/users/enable-account").hasAuthority("ADMIN")
+                        .requestMatchers("/api/users/lock-account").hasAuthority("ADMIN")
+                        .requestMatchers("/api/update-account").authenticated()
                         .requestMatchers("/api/departments").hasAuthority("ADMIN")
                         .requestMatchers("/api/teams").hasAuthority("MANAGER")
                         .requestMatchers("/api/leave-type").hasAuthority("ADMIN")

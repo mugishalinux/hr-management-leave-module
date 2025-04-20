@@ -1,4 +1,4 @@
-package com.leave.management.system.dto;
+package com.leave.management.system.dto.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

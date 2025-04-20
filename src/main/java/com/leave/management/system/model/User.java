@@ -1,68 +1,71 @@
 package com.leave.management.system.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.leave.management.system.enums.UserPermission;
+import jakarta.persistence.*;
+import lombok.*;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import jakarta.persistence.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
 @Entity
-@Table(name = "user")
+@Table(name = "users")
+public class User extends BaseEntity {
 
-public class User  extends BaseEntity{
-    protected String username;
+    @Column(nullable = false)
+    private String fullName;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(nullable = true)
+    private String profile;
+
     @JsonIgnore
-    protected String password;
+    @Column(nullable = false)
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserPermission permissions; // ADMIN, STAFF, or MANAGER
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    @JsonIgnore
+    private Team team; // Optional
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    @JsonIgnore
+    private Department department; // Optional
+
     @Transient
-    protected List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
-    protected String permissions;
+    private List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
 
     @JsonIgnore
-    protected boolean accountLocked = false;
+    private boolean accountLocked = false;
+
     @JsonIgnore
-    protected boolean credentialsExpired = false;
-    protected boolean accountEnabled = true;
+    private boolean credentialsExpired = false;
 
-
-
-
-    public User(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
+    private boolean accountEnabled = true;
 
     public void addAuthority(String authority) {
         if (authorityList == null)
             authorityList = new ArrayList<>();
         authorityList.add(new SimpleGrantedAuthority(authority));
-        permissions = String.join(",", this.authorityList.stream().map(auth -> auth.getAuthority()).collect(Collectors.toList()));
     }
+
     public List<SimpleGrantedAuthority> getAuthorityList() {
-        if (permissions == null || permissions.isBlank()) {
-            return new ArrayList<>();
-        }
-
-        return Arrays.stream(permissions.split(","))
-                .map(String::trim)
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
+        return List.of(new SimpleGrantedAuthority(permissions.name()));
     }
+
     public String getAuthorities() {
-        return permissions;
+        return permissions.name();
     }
-
-
-
 }

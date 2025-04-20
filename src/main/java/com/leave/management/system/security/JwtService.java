@@ -105,10 +105,10 @@ public class JwtService {
 
     public String generateToken(User user, HttpServletRequest request) {
         Date expirationDate = new Date(System.currentTimeMillis() + LONGEVITY_OTP);
-        return performGenerateToken(user.getId(), user.getUsername(), user.getAuthorityList(), expirationDate, null, request);
+        return performGenerateToken(user.getId(), user.getEmail(), user.getAuthorityList(), expirationDate, null, request);
     }
 
-    public String performGenerateToken(String userId, String username, List<SimpleGrantedAuthority> authorities, Date expirationDate, String otp, HttpServletRequest request) {
+    public String performGenerateToken(String userId, String email, List<SimpleGrantedAuthority> authorities, Date expirationDate, String otp, HttpServletRequest request) {
         String inetSocketAddress = request.getRemoteAddr();
         if (inetSocketAddress == null)
             return null;
@@ -121,7 +121,7 @@ public class JwtService {
                 .withIssuedAt(new Date())
                 .withExpiresAt(expirationDate)
                 .withClaim(CLAIM_ROLE, authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()))
-                .withClaim(CLAIM_USERNAME, username)
+                .withClaim(CLAIM_USERNAME, email)
                 .sign(algorithm);
         jwtMapping.put(userId, JWTData.builder().otp(otp).address(address).key(key).expirationDate(expirationDate).build());
         return jwt;

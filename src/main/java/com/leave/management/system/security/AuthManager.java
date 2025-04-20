@@ -42,7 +42,7 @@ public class AuthManager implements AuthenticationManager {
         authentication.setAuthenticated(true);
         AuthenticatedUser principal = (AuthenticatedUser) authentication.getPrincipal();
         principal.setId(decodedJWT.getSubject());
-        principal.setUsername(jwtService.getUsername(decodedJWT));
+        principal.setEmail(jwtService.getUsername(decodedJWT));
         principal.setAuthorityList(jwtService.getRoles(decodedJWT));
         return authentication;
     }

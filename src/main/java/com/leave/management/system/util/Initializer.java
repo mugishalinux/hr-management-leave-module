@@ -2,6 +2,7 @@ package com.leave.management.system.util;
 
 
 
+import com.leave.management.system.enums.UserPermission;
 import com.leave.management.system.model.Permissions;
 import com.leave.management.system.model.User;
 import com.leave.management.system.repository.UserRepository;
@@ -24,18 +25,18 @@ public class Initializer implements CommandLineRunner {
     }
 
     private void insertUsers() {
-        if (userRepository.findByUsername("admin") == null){
-            User user = new User("admin", passwordEncoder.encode("Da2SVDkq!^fUBo8zkdcYlf95j6rltBwHRAqogfHVsKHfUEBrhZ"));
-            user.addAuthority(Permissions.VIEW_DASHBOARD.toString());
-            user.addAuthority(Permissions.USER_MANAGEMENT.toString());
-            user.addAuthority(Permissions.POST_MANAGEMENT.toString());
+        String adminEmail = "admin@gmail.com";
+        if (userRepository.findByEmail(adminEmail) == null) {
+            User user = new User();
+            user.setEmail(adminEmail);
+            user.setPassword(passwordEncoder.encode("admin"));
+            user.setFullName("Admin");
+            user.setPermissions(UserPermission.ADMIN);
+            user.setAccountEnabled(true);
             userRepository.save(user);
-        }
-        if (userRepository.findByUsername("user") == null){
-            User user = new User("user", passwordEncoder.encode("SVDkq!^fUBo8zkdcYlf95j6rltBwHRAqogfHVsKHfUEBrhZ"));
-            user.addAuthority(Permissions.VIEW_DASHBOARD.toString());
-            user.addAuthority(Permissions.POST_MANAGEMENT.toString());
-            userRepository.save(user);
+            System.out.println("✅ Admin user seeded");
+        } else {
+            System.out.println("ℹ️ Admin user already exists, skipping seeding");
         }
     }
 }

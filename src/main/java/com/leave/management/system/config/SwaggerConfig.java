@@ -1,9 +1,9 @@
 package com.leave.management.system.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.info.*;
+import io.swagger.v3.oas.models.security.*;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,12 +17,11 @@ public class SwaggerConfig {
     public OpenAPI leaveManagementOpenAPI() {
         Server devServer = new Server();
         devServer.setUrl("http://localhost:8087");
-        devServer.setDescription("Development server for Leave Management System");
+        devServer.setDescription("Development server");
 
         Contact contact = new Contact()
-                .name("Leave Management Support")
-                .email("support@leavemanagement.com")
-                .url("http://localhost:8087");
+                .name("Support Team")
+                .email("support@leavemanagement.com");
 
         License license = new License()
                 .name("MIT License")
@@ -30,14 +29,21 @@ public class SwaggerConfig {
 
         Info info = new Info()
                 .title("Leave Management System API")
-                .version("1.0.0")
-                .description("HR leave management system API Module")
-                .termsOfService("http://localhost:8087/terms")
+                .version("1.0")
+                .description("API documentation for Leave Management System")
                 .contact(contact)
                 .license(license);
 
+        // Security scheme
+        SecurityScheme bearerAuth = new SecurityScheme()
+                .type(SecurityScheme.Type.HTTP)
+                .scheme("bearer")
+                .bearerFormat("JWT");
+
         return new OpenAPI()
                 .info(info)
-                .servers(List.of(devServer));
+                .servers(List.of(devServer))
+                .components(new Components().addSecuritySchemes("bearerAuth", bearerAuth))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth")); // Apply globally
     }
 }

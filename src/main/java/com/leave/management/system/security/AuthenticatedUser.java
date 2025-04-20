@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 public class AuthenticatedUser {
     private String id;
-    private String username;
+    private String email;
     protected List<SimpleGrantedAuthority> authorityList;
 
     public AuthenticatedUser() {
@@ -18,13 +18,13 @@ public class AuthenticatedUser {
 
     public AuthenticatedUser(User user) {
         this.id = user.getId();
-        this.username = user.getUsername();
+        this.email = user.getEmail();
         this.authorityList = user.getAuthorityList();
     }
 
     public AuthenticatedUser(String id, String username, List<SimpleGrantedAuthority> authorityList) {
         this.id = id;
-        this.username = username;
+        this.email = username;
         this.authorityList = authorityList;
     }
 
@@ -39,7 +39,7 @@ public class AuthenticatedUser {
     public String toString() {
         return "UserSimpleDetails{" +
                 "id='" + id + '\'' +
-                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
                 ", authorityList=" + authorityList +
                 '}';
     }
