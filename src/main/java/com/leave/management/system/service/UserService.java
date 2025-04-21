@@ -5,12 +5,14 @@ import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.UserPermission;
 import com.leave.management.system.exceptions.ApiRequestException;
 import com.leave.management.system.model.Department;
+import com.leave.management.system.model.LeaveBalance;
 import com.leave.management.system.model.Team;
 import com.leave.management.system.model.User;
 import com.leave.management.system.repository.DepartmentRepository;
 import com.leave.management.system.repository.TeamRepository;
 import com.leave.management.system.repository.UserRepository;
 import com.leave.management.system.security.JwtService;
+import com.leave.management.system.service.leaveBalance.LeaveBalanceService;
 import com.leave.management.system.util.helpers.PermissionUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -31,31 +33,38 @@ public class UserService {
     private final TeamRepository teamRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final LeaveBalanceService leaveBalanceService;
+
 
     public User registerUser(RegisterUserDto dto) {
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new ApiRequestException("Email already taken");
+        try{
+            if (userRepository.existsByEmail(dto.getEmail())) {
+                throw new ApiRequestException("Email already taken");
+            }
+            User user = new User();
+            user.setEmail(dto.getEmail());
+            user.setProfile(dto.getProfileImg());
+            user.setFullName(dto.getFullName());
+            if (dto.getDepartmentId() != null) {
+                Department department = departmentRepository.findById(dto.getDepartmentId())
+                        .orElseThrow(() -> new ApiRequestException("Department ID does not exist."));
+                user.setDepartment(department);
+            }
+            if(!dto.getTeamId().isBlank() || !dto.getTeamId().isEmpty()) {
+                Team team = teamRepository.findById(dto.getTeamId()).orElseThrow(() -> new ApiRequestException("Team ID does not exist."));
+                user.setTeam(team);
+            }
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+            UserPermission permission = PermissionUtils.validateAndParsePermission(dto.getPermissions()); // returns UserPermission.ADMIN
+            user.setPermissions(permission);
+            user.setAccountEnabled(false);
+            User userSaved = userRepository.save(user);
+            LeaveBalance leaveBalance = new LeaveBalance();
+            leaveBalanceService.createBalanceForUser(userSaved.getId());
+            return userSaved;
+        }catch (Exception e){
+            throw new ApiRequestException(e.getMessage());
         }
-
-        User user = new User();
-        user.setEmail(dto.getEmail());
-        user.setProfile(dto.getProfileImg());
-        user.setFullName(dto.getFullName());
-        if (dto.getDepartmentId() != null) {
-            Department department = departmentRepository.findById(dto.getDepartmentId())
-                    .orElseThrow(() -> new ApiRequestException("Department ID does not exist."));
-            user.setDepartment(department);
-        }
-        if(!dto.getTeamId().isBlank() || !dto.getTeamId().isEmpty()) {
-            Team team = teamRepository.findById(dto.getTeamId()).orElseThrow(() -> new ApiRequestException("Team ID does not exist."));
-            user.setTeam(team);
-        }
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        UserPermission permission = PermissionUtils.validateAndParsePermission(dto.getPermissions()); // returns UserPermission.ADMIN
-        user.setPermissions(permission);
-        user.setAccountEnabled(false);
-
-        return userRepository.save(user);
     }
     public User updateUser(String id, UpdateUserDto dto) {
         try {

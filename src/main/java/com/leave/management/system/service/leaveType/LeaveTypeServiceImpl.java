@@ -42,9 +42,11 @@ public class LeaveTypeServiceImpl implements LeaveTypeService {
             LeaveType leaveType = new LeaveType();
             leaveType.setName(leaveTypeDto.getName());
             leaveType.setDescription(leaveTypeDto.getDescription());
+            leaveType.setLeaveTypeRequireReason(leaveTypeDto.isLeaveTypeRequireReason());
             leaveType.setLeaveTypeRequiresAttachment(leaveTypeDto.isLeaveTypeRequiresAttachment());
             User user = securityUtils.getCurrentUser();
             leaveType.setCreatedBy(user);
+            leaveType.setAffectsBalance(leaveTypeDto.isAffectsBalance());
             leaveType.setUpdatedBy(user);
             return new ResponseDto(HttpStatus.CREATED,"Department created successfully",leaveTypeRepository.save(leaveType).getId());
         } catch (Exception e) {
@@ -69,9 +71,11 @@ public class LeaveTypeServiceImpl implements LeaveTypeService {
             LeaveType leaveType = leaveTypeRepository.findById(id)
                     .orElseThrow(() -> new ApiRequestException("Leave type not found"));
             leaveType.setName(leaveTypeUpdateDto.getName());
+            leaveType.setLeaveTypeRequireReason(leaveTypeUpdateDto.isLeaveTypeRequireReason());
             leaveType.setDescription(leaveTypeUpdateDto.getDescription());
             leaveType.setLeaveTypeRequiresAttachment(leaveTypeUpdateDto.isLeaveTypeRequiresAttachment());
 //            leaveType.setStatus(leaveTypeUpdateDto.getLeaveTypeStatus());
+            leaveType.setAffectsBalance(leaveTypeUpdateDto.isAffectsBalance());
             User user = securityUtils.getCurrentUser();
             leaveType.setUpdatedBy(user);
             try {

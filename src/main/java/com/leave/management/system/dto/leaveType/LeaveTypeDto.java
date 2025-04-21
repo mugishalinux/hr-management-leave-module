@@ -20,4 +20,8 @@ public class LeaveTypeDto {
     private String description;
 
     private boolean leaveTypeRequiresAttachment;
+
+    private boolean isLeaveTypeRequireReason;
+
+    private boolean affectsBalance;
 }

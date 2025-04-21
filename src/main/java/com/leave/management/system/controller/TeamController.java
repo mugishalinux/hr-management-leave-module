@@ -1,6 +1,7 @@
 package com.leave.management.system.controller;
 
 import com.leave.management.system.dto.response.ResponseDto;
+import com.leave.management.system.dto.team.AssignUsersToTeamDto;
 import com.leave.management.system.dto.team.CreateTeamDto;
 import com.leave.management.system.dto.team.UpdateTeamDto;
 import com.leave.management.system.model.Department;
@@ -49,5 +50,9 @@ public class TeamController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ResponseDto> deleteTeam(@PathVariable String id) {
         return ResponseEntity.ok(teamService.deleteTeam(id));
+    }
+    @PostMapping("/assign-users")
+    public ResponseEntity<ResponseDto> assignUsersToTeam(@RequestBody @Valid AssignUsersToTeamDto dto) {
+        return ResponseEntity.ok(teamService.assignUsersToTeam(dto));
     }
 }

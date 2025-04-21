@@ -1,0 +1,83 @@
+package com.leave.management.system.controller;
+
+import com.leave.management.system.dto.leaveApplication.LeaveApplicationDto;
+import com.leave.management.system.dto.response.ResponseDto;
+import com.leave.management.system.enums.LeaveApplicationStatus;
+import com.leave.management.system.model.LeaveApplication;
+import com.leave.management.system.service.leaveApplications.LeaveApplicationService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/leave-applications")
+@RequiredArgsConstructor
+public class LeaveApplicationController {
+
+    private final LeaveApplicationService leaveApplicationService;
+
+    @PostMapping("/submit")
+    public ResponseEntity<ResponseDto> applyForLeave(@Valid @RequestBody LeaveApplicationDto dto) {
+        return ResponseEntity.ok(leaveApplicationService.applyForLeave(dto));
+    }
+
+    @GetMapping("/submitted")
+    public ResponseEntity<Page<LeaveApplication>> getAllLeaveApplications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy) {
+        return ResponseEntity.ok(leaveApplicationService.getAllLeaveApplications(page, size, sortBy));
+    }
+    @GetMapping("/history")
+    public ResponseEntity<Page<LeaveApplication>> getMyLeaveApplications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
+        return ResponseEntity.ok(leaveApplicationService.getMyLeaveApplications(page,size,sortBy));
+    }
+
+
+    @GetMapping("/byId/{id}")
+    public ResponseEntity<LeaveApplication> getLeaveApplicationById(@PathVariable String id) {
+        return ResponseEntity.ok(leaveApplicationService.getLeaveApplicationById(id));
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<ResponseDto> updateLeaveApplication(
+            @PathVariable String id,
+            @Valid @RequestBody LeaveApplicationDto dto) {
+        return ResponseEntity.ok(leaveApplicationService.updateLeaveApplication(id, dto));
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<ResponseDto> deleteLeaveApplication(@PathVariable String id) {
+        return ResponseEntity.ok(leaveApplicationService.deleteLeaveApplication(id));
+    }
+    @GetMapping("/upcoming-holidays")
+    public ResponseEntity<List<LocalDate>> getUpcomingHolidays() {
+        return ResponseEntity.ok(leaveApplicationService.getUpcomingHolidays());
+    }
+
+    @GetMapping("/team-members-on-leave")
+    public ResponseEntity<List<LeaveApplication>> getCurrentTeamLeaves() {
+        return ResponseEntity.ok(leaveApplicationService.getCurrentTeamLeaves());
+    }
+    @PutMapping("/approve-or-reject/{id}")
+    public ResponseEntity<ResponseDto> approveOrRejectLeave(
+            @PathVariable String id,
+            @RequestParam LeaveApplicationStatus status,
+            @RequestParam(required = false) String comment) {
+        return ResponseEntity.ok(leaveApplicationService.approveOrRejectLeave(id, status, comment));
+    }
+
+}

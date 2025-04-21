@@ -1,5 +1,6 @@
 package com.leave.management.system.service.team;
 import com.leave.management.system.dto.response.ResponseDto;
+import com.leave.management.system.dto.team.AssignUsersToTeamDto;
 import com.leave.management.system.dto.team.CreateTeamDto;
 import com.leave.management.system.dto.team.UpdateTeamDto;
 import com.leave.management.system.model.Team;
@@ -12,4 +13,5 @@ public interface TeamService {
     ResponseDto updateTeam(String id, UpdateTeamDto dto);
     ResponseDto deleteTeam(String id);
     Team getTeamById(String id);
+    ResponseDto assignUsersToTeam(AssignUsersToTeamDto dto);
 }

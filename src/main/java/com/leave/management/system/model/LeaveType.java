@@ -23,7 +23,14 @@ public class LeaveType extends BaseEntity {
     @Column(name = "requires_attachment", nullable = false)
     private boolean leaveTypeRequiresAttachment;
 
+    @Column(name = "requires_reason", nullable = false)
+    private boolean isLeaveTypeRequireReason;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
+
     private LeaveTypeStatus status = LeaveTypeStatus.ACTIVE;
+
+    @Column(name = "affects_balance", nullable = false)
+    private boolean affectsBalance;
 }

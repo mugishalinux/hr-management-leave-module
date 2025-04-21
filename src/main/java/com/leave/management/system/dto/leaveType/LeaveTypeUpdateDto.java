@@ -25,4 +25,8 @@ public class LeaveTypeUpdateDto {
 
     @NotNull(message = "Leave type status is required")
     private LeaveTypeStatus leaveTypeStatus;
+
+    private boolean isLeaveTypeRequireReason;
+
+    private boolean affectsBalance;
 }

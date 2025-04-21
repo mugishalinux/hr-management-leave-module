@@ -1,5 +1,6 @@
 package com.leave.management.system.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Entity
 @Table(name = "department")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 
 public class Department extends BaseEntity {
     @Column(nullable = false, unique = true)

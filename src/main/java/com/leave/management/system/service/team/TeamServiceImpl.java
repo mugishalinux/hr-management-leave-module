@@ -3,6 +3,7 @@ package com.leave.management.system.service.team;
 
 
 import com.leave.management.system.dto.response.ResponseDto;
+import com.leave.management.system.dto.team.AssignUsersToTeamDto;
 import com.leave.management.system.dto.team.CreateTeamDto;
 import com.leave.management.system.dto.team.UpdateTeamDto;
 import com.leave.management.system.exceptions.ApiRequestException;
@@ -54,6 +55,8 @@ public class TeamServiceImpl implements TeamService {
             team.setLead(user);
             team.setUpdatedBy(user);
             team = teamRepository.save(team);
+            user.setTeam(team);
+            userRepository.save(user);
             return new ResponseDto(HttpStatus.CREATED, "Team created successfully", team.getId());
         } catch (Exception e) {
             throw new ApiRequestException(e.getMessage());
@@ -103,4 +106,23 @@ public class TeamServiceImpl implements TeamService {
             throw new ApiRequestException(e.getMessage());
         }
     }
+    @Override
+    public ResponseDto assignUsersToTeam(AssignUsersToTeamDto dto) {
+        try{
+            Team team = teamRepository.findById(dto.getTeamId())
+                    .orElseThrow(() -> new ApiRequestException("Team not found"));
+
+            for (String userId : dto.getUserIds()) {
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new ApiRequestException("User not found with ID: " + userId));
+                user.setTeam(team);
+                user.setUpdatedBy(securityUtils.getCurrentUser());
+                userRepository.save(user);
+            }
+            return new ResponseDto(HttpStatus.OK, "Users assigned to team successfully", team.getId());
+        } catch (Exception e) {
+            throw new ApiRequestException(e.getMessage());
+        }
+    }
+
 }

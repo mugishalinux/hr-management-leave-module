@@ -1,4 +1,4 @@
-package com.leave.management.system.controller.department;
+package com.leave.management.system.controller;
 
 
 import com.leave.management.system.dto.department.CreateDepartmentDto;
@@ -8,12 +8,8 @@ import com.leave.management.system.service.department.DepartmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/departments")
