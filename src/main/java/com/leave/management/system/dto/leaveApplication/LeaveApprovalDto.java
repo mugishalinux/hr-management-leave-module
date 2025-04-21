@@ -1,7 +1,6 @@
 package com.leave.management.system.dto.leaveApplication;
 
 import com.leave.management.system.enums.LeaveApplicationStatus;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 

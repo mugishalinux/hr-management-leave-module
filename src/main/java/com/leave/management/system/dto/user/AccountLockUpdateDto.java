@@ -2,6 +2,7 @@ package com.leave.management.system.dto.user;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
 @Data
 public class AccountLockUpdateDto {
     @NotNull(message = "Status is required")
