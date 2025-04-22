@@ -27,7 +27,7 @@ public class LeaveTypeController {
         return new ResponseEntity<>(leaveTypeService.createLeaveType(leaveTypeDto), HttpStatus.CREATED);
     }
 
-    @GetMapping("")
+    @GetMapping("/list")
     public Page<LeaveType> getAllLeaveTypes(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int sizePage,

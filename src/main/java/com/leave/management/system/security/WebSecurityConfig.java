@@ -73,9 +73,11 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/leave-applications/upcoming-holidays").authenticated()
                         .requestMatchers("/api/leave-applications/team-members-on-leave").authenticated()
                         .requestMatchers("/api/leave-applications/approve-or-reject").authenticated()
+                        .requestMatchers("/api/leave-balance-overview").authenticated()
                         .requestMatchers("/api/departments").hasAuthority("ADMIN")
                         .requestMatchers("/api/teams").hasAuthority("MANAGER")
                         .requestMatchers("/api/leave-type").hasAuthority("ADMIN")
+                        .requestMatchers("/api/leave-type/list").authenticated()
                         .requestMatchers("/api/leave-policy").hasAuthority("ADMIN")
                         .anyRequest().permitAll() // ✅ allow any other request for now (dev mode)
                 );

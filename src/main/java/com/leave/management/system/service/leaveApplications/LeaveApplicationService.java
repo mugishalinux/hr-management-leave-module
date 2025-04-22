@@ -1,5 +1,6 @@
 package com.leave.management.system.service.leaveApplications;
 
+import com.leave.management.system.dto.leaveApplication.HolidayResponseDto;
 import com.leave.management.system.dto.leaveApplication.LeaveApplicationDto;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.LeaveApplicationStatus;
@@ -23,7 +24,7 @@ public interface LeaveApplicationService {
 
     Page<LeaveApplication> getMyLeaveApplications(int page, int size, String sortBy);
 
-    List<LocalDate> getUpcomingHolidays();
+    List<HolidayResponseDto> getUpcomingHolidays();
 
     List<LeaveApplication> getCurrentTeamLeaves();
 

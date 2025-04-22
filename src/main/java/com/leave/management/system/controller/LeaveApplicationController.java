@@ -1,5 +1,6 @@
 package com.leave.management.system.controller;
 
+import com.leave.management.system.dto.leaveApplication.HolidayResponseDto;
 import com.leave.management.system.dto.leaveApplication.LeaveApplicationDto;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.LeaveApplicationStatus;
@@ -64,9 +65,10 @@ public class LeaveApplicationController {
         return ResponseEntity.ok(leaveApplicationService.deleteLeaveApplication(id));
     }
     @GetMapping("/upcoming-holidays")
-    public ResponseEntity<List<LocalDate>> getUpcomingHolidays() {
+    public ResponseEntity<List<HolidayResponseDto>> getUpcomingHolidays() {
         return ResponseEntity.ok(leaveApplicationService.getUpcomingHolidays());
     }
+
 
     @GetMapping("/team-members-on-leave")
     public ResponseEntity<List<LeaveApplication>> getCurrentTeamLeaves() {

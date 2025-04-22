@@ -2,6 +2,8 @@ package com.leave.management.system.service.leaveApplications;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.leave.management.system.constants.HolidayConstants;
+import com.leave.management.system.constants.HolidayDescriptionConstants;
+import com.leave.management.system.dto.leaveApplication.HolidayResponseDto;
 import com.leave.management.system.dto.leaveApplication.LeaveApplicationDto;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.LeaveApplicationStatus;
@@ -79,7 +81,12 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
                 }
 
                 if (balance.getRemainingDays() < daysRequested) {
-                    throw new ApiRequestException("Insufficient leave balance. You have only " + balance.getRemainingDays() + " days left.");
+                    if(balance.getRemainingDays() == 0.0){
+                        throw new ApiRequestException("You don't have enough leave balance.");
+                    }else{
+                        throw new ApiRequestException("You don't have enough leave balance. You have only " + balance.getRemainingDays() + " days left.");
+                    }
+
                 }
             }
 
@@ -125,15 +132,16 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
     }
 
     @Override
-    public List<LocalDate> getUpcomingHolidays() {
-        try{
+    public List<HolidayResponseDto> getUpcomingHolidays() {
+        try {
             LocalDate today = LocalDate.now();
-            return HolidayConstants.HOLIDAYS_2025.stream()
-                    .filter(date -> date.isAfter(today))
-                    .sorted()
+            return HolidayDescriptionConstants.HOLIDAYS_2025_WITH_DESCRIPTION.entrySet().stream()
+                    .filter(entry -> entry.getKey().isAfter(today))
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(entry -> new HolidayResponseDto(entry.getKey(), entry.getValue()))
                     .toList();
         } catch (Exception e) {
-            throw new ApiRequestException(e.getMessage());
+            throw new ApiRequestException("Failed to fetch holidays: " + e.getMessage());
         }
     }
 
