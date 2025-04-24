@@ -107,6 +107,19 @@ public class TeamServiceImpl implements TeamService {
         }
     }
     @Override
+    public Optional<Team> getTeamByUser() {
+        try {
+            User user = securityUtils.getCurrentUser();
+            if(user.getTeam() != null) {
+                return Optional.of(user.getTeam());
+            }
+            return teamRepository.findByLeadId(user.getId());
+        }catch (Exception e) {
+            throw new ApiRequestException(e.getMessage());
+        }
+    }
+
+    @Override
     public ResponseDto assignUsersToTeam(AssignUsersToTeamDto dto) {
         try{
             Team team = teamRepository.findById(dto.getTeamId())
@@ -115,6 +128,9 @@ public class TeamServiceImpl implements TeamService {
             for (String userId : dto.getUserIds()) {
                 User user = userRepository.findById(userId)
                         .orElseThrow(() -> new ApiRequestException("User not found with ID: " + userId));
+                if(user.getTeam() != null && user.getTeam().getId() == team.getId()) {
+                    throw new ApiRequestException("You already belongs to this team.");
+                }
                 user.setTeam(team);
                 user.setUpdatedBy(securityUtils.getCurrentUser());
                 userRepository.save(user);
@@ -123,6 +139,10 @@ public class TeamServiceImpl implements TeamService {
         } catch (Exception e) {
             throw new ApiRequestException(e.getMessage());
         }
+    }
+    @Override
+    public Optional<Team> getTeamByLeadId(String leadId) {
+        return teamRepository.findByLeadId(leadId);
     }
 
 }

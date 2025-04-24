@@ -2,8 +2,10 @@ package com.leave.management.system.controller;
 
 import com.leave.management.system.dto.leaveApplication.HolidayResponseDto;
 import com.leave.management.system.dto.leaveApplication.LeaveApplicationDto;
+import com.leave.management.system.dto.leaveApplication.*;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.LeaveApplicationStatus;
+import com.leave.management.system.exceptions.ApiRequestException;
 import com.leave.management.system.model.LeaveApplication;
 import com.leave.management.system.service.leaveApplications.LeaveApplicationService;
 import jakarta.validation.Valid;
@@ -12,6 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -69,17 +73,27 @@ public class LeaveApplicationController {
         return ResponseEntity.ok(leaveApplicationService.getUpcomingHolidays());
     }
 
-
-    @GetMapping("/team-members-on-leave")
-    public ResponseEntity<List<LeaveApplication>> getCurrentTeamLeaves() {
-        return ResponseEntity.ok(leaveApplicationService.getCurrentTeamLeaves());
+    @GetMapping("/team-on-leave")
+    public ResponseEntity<TeamOnLeaveDto> getTeamMembersOnLeaveToday() {
+        return ResponseEntity.ok(leaveApplicationService.getTodayTeamMembersOnLeave());
     }
+
     @PutMapping("/approve-or-reject/{id}")
     public ResponseEntity<ResponseDto> approveOrRejectLeave(
             @PathVariable String id,
             @RequestParam LeaveApplicationStatus status,
             @RequestParam(required = false) String comment) {
         return ResponseEntity.ok(leaveApplicationService.approveOrRejectLeave(id, status, comment));
+    }
+    @GetMapping("/approve/pending-applications")
+    public ResponseEntity<Page<LeaveApplication>> getPendingApplications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+
+        Sort.Order order = new Sort.Order(Sort.Direction.fromString(sort[1]), sort[0]);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(order));
+        return ResponseEntity.ok(leaveApplicationService.getPendingApplicationsForApprover(pageable));
     }
 
 }

@@ -13,4 +13,5 @@ public interface TeamRepository extends JpaRepository<Team, String> {
     Page<Team> findAll(Pageable pageable);
     boolean existsByLeadId(String leadId);
     boolean existsByName(String name);
+    Optional<Team> findByLeadId(String userId);
 }

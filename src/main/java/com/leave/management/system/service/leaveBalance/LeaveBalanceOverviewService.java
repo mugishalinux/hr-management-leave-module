@@ -4,4 +4,5 @@ import com.leave.management.system.dto.leaveBalance.LeaveBalanceOverviewDto;
 
 public interface LeaveBalanceOverviewService {
     LeaveBalanceOverviewDto getCurrentUserLeaveOverview();
+    LeaveBalanceOverviewDto getCustomLeaveBalanceForUser(String userId, String leaveTypeId);
 }

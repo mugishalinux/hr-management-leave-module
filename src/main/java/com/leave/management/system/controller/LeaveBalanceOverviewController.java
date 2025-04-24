@@ -16,4 +16,9 @@ public class LeaveBalanceOverviewController {
     public LeaveBalanceOverviewDto getOverview() {
         return leaveBalanceOverviewService.getCurrentUserLeaveOverview();
     }
+    @GetMapping("/details")
+    public LeaveBalanceOverviewDto getOverviewDetails(            @RequestParam() String userId,
+                                                                  @RequestParam() String leaveTypeId) {
+        return leaveBalanceOverviewService.getCustomLeaveBalanceForUser(userId, leaveTypeId);
+    }
 }

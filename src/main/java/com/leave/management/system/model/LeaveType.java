@@ -33,4 +33,7 @@ public class LeaveType extends BaseEntity {
 
     @Column(name = "affects_balance", nullable = false)
     private boolean affectsBalance;
+
+    @Column(name = "days_limit")
+    private double daysLimit;
 }

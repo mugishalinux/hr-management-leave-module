@@ -18,4 +18,16 @@ public interface LeaveApplicationRepository extends JpaRepository<LeaveApplicati
     boolean existsByUserAndLeaveTypeAndStatus(User user, LeaveType leaveType, LeaveApplicationStatus status);
     Page<LeaveApplication> findAllByUser(User user, Pageable pageable);
     List<LeaveApplication> findByUser_TeamAndStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(Team team, LeaveApplicationStatus status, LocalDate start, LocalDate end);
+    List<LeaveApplication> findByUserAndLeaveTypeAndStatusAndStartDateBetween(
+            User user,
+            LeaveType leaveType,
+            LeaveApplicationStatus status,
+            LocalDate startDate,
+            LocalDate endDate
+    );
+    Page<LeaveApplication> findAllByStatus(LeaveApplicationStatus status, Pageable pageable);
+    Page<LeaveApplication> findByUser_TeamAndStatus(Team team, LeaveApplicationStatus status, Pageable pageable);
+    List<LeaveApplication> findAllByUserAndLeaveTypeAndStatus(User user, LeaveType leaveType, LeaveApplicationStatus status);
+    Page<LeaveApplication> findByUser_Team(Team team, Pageable pageable);
+    Page<LeaveApplication> findByUser(User user, Pageable pageable);
 }

@@ -12,11 +12,16 @@ import com.leave.management.system.repository.DepartmentRepository;
 import com.leave.management.system.repository.TeamRepository;
 import com.leave.management.system.repository.UserRepository;
 import com.leave.management.system.security.JwtService;
+import com.leave.management.system.security.SecurityUtils;
 import com.leave.management.system.service.leaveBalance.LeaveBalanceService;
 import com.leave.management.system.util.helpers.PermissionUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +38,7 @@ public class UserService {
     private final TeamRepository teamRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final SecurityUtils securityUtils;
     private final LeaveBalanceService leaveBalanceService;
 
 
@@ -63,6 +69,16 @@ public class UserService {
             leaveBalanceService.createBalanceForUser(userSaved.getId());
             return userSaved;
         }catch (Exception e){
+            throw new ApiRequestException(e.getMessage());
+        }
+    }
+    public List<User> getAllUsers(){
+        try{
+            User user = securityUtils.getCurrentUser();
+            Department department = new Department();
+            department = user.getDepartment();
+            return userRepository.findAllByDepartment(department);
+        }catch(Exception e){
             throw new ApiRequestException(e.getMessage());
         }
     }
@@ -100,14 +116,10 @@ public class UserService {
         }
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public Optional<User> getUserById() {
+        return Optional.ofNullable(securityUtils.getCurrentUser());
     }
 
-
-    public Optional<User> getUserById(String id) {
-        return Optional.ofNullable(userRepository.findById(id).orElseThrow(() -> new ApiRequestException("User not found.")));
-    }
 
     public void deleteUser(String id) {
         userRepository.deleteById(id);
@@ -127,9 +139,24 @@ public class UserService {
         }
 
         String token = jwtService.generateToken(user, request);
-        return new LoginResponseDto(user.getId(), token, user.getPermissions().name());
+        String dep = "-";
+        if(user.getPermissions().name().equals("ADMIN")) {
+            return new LoginResponseDto(user.getId(), token, user.getPermissions().name(),dep);
+        }else{
+            return new LoginResponseDto(user.getId(), token, user.getPermissions().name(), user.getDepartment().getId());
+        }
+
     }
 
+
+    public Page<User> getAllUsersByTeamId(String teamId, int page, int size, String sortBy) {
+        try{
+            Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+            return userRepository.findAllByTeamId(teamId, pageable);
+        } catch (RuntimeException e) {
+            throw new ApiRequestException(e.getMessage());
+        }
+    }
 
     public void logout(HttpServletRequest request) {
         String token = request.getHeader("Authorization");
@@ -179,4 +206,11 @@ public class UserService {
             throw new ApiRequestException(STR."Update failed\{e.getMessage()}");
         }
     }
+//    public User findUserBy(){
+//        try{
+//            return securityUtils.getCurrentUser();
+//        } catch (Exception e) {
+//            throw new ApiRequestException(e.getMessage());
+//        }
+//    }
 }

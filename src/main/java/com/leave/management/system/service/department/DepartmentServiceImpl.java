@@ -32,13 +32,17 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     public ResponseDto createDepartment(CreateDepartmentDto createDepartmentDto) {
         try {
+            User user = securityUtils.getCurrentUser();
+            if(!user.getPermissions().name().equals("ADMIN")) {
+                throw new ApiRequestException("Only admin can create departments");
+            }
             Department department = new Department();
             if(departmentRepository.existsByName(createDepartmentDto.getDepartmentName())){
                 throw new ApiRequestException("Department name already exists");
             }
             department.setName(createDepartmentDto.getDepartmentName());
             department.setDescription(createDepartmentDto.getDepartmentDesc());
-            User user = securityUtils.getCurrentUser();
+
             department.setCreatedBy(user);
             department.setUpdatedBy(user);
             return new ResponseDto(HttpStatus.CREATED,"Department created successfully",departmentRepository.save(department).getId());

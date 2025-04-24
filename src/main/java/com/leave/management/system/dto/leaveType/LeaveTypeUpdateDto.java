@@ -29,4 +29,6 @@ public class LeaveTypeUpdateDto {
     private boolean isLeaveTypeRequireReason;
 
     private boolean affectsBalance;
+
+    private double daysLimit;
 }

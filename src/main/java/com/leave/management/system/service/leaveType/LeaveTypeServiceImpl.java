@@ -39,16 +39,20 @@ public class LeaveTypeServiceImpl implements LeaveTypeService {
             if (leaveTypeRepository.existsByName(leaveTypeDto.getName())) {
                 throw new ApiRequestException("Leave type name already exists");
             }
+            if(!leaveTypeDto.isAffectsBalance() && leaveTypeDto.getDaysLimit() == 0){
+                throw new ApiRequestException("Days limit cannot be zero");
+            }
             LeaveType leaveType = new LeaveType();
             leaveType.setName(leaveTypeDto.getName());
             leaveType.setDescription(leaveTypeDto.getDescription());
             leaveType.setLeaveTypeRequireReason(leaveTypeDto.isLeaveTypeRequireReason());
             leaveType.setLeaveTypeRequiresAttachment(leaveTypeDto.isLeaveTypeRequiresAttachment());
+            leaveType.setDaysLimit(leaveTypeDto.getDaysLimit());
             User user = securityUtils.getCurrentUser();
             leaveType.setCreatedBy(user);
             leaveType.setAffectsBalance(leaveTypeDto.isAffectsBalance());
             leaveType.setUpdatedBy(user);
-            return new ResponseDto(HttpStatus.CREATED,"Department created successfully",leaveTypeRepository.save(leaveType).getId());
+            return new ResponseDto(HttpStatus.CREATED,"Leave Type created successfully",leaveTypeRepository.save(leaveType).getId());
         } catch (Exception e) {
             throw new ApiRequestException(e.getMessage());
         }
@@ -70,12 +74,16 @@ public class LeaveTypeServiceImpl implements LeaveTypeService {
         try {
             LeaveType leaveType = leaveTypeRepository.findById(id)
                     .orElseThrow(() -> new ApiRequestException("Leave type not found"));
+            if(!leaveTypeUpdateDto.isAffectsBalance() && leaveTypeUpdateDto.getDaysLimit() == 0){
+                throw new ApiRequestException("Days limit cannot be zero");
+            }
             leaveType.setName(leaveTypeUpdateDto.getName());
             leaveType.setLeaveTypeRequireReason(leaveTypeUpdateDto.isLeaveTypeRequireReason());
             leaveType.setDescription(leaveTypeUpdateDto.getDescription());
             leaveType.setLeaveTypeRequiresAttachment(leaveTypeUpdateDto.isLeaveTypeRequiresAttachment());
 //            leaveType.setStatus(leaveTypeUpdateDto.getLeaveTypeStatus());
             leaveType.setAffectsBalance(leaveTypeUpdateDto.isAffectsBalance());
+            leaveType.setDaysLimit(leaveTypeUpdateDto.getDaysLimit());
             User user = securityUtils.getCurrentUser();
             leaveType.setUpdatedBy(user);
             try {
@@ -92,8 +100,9 @@ public class LeaveTypeServiceImpl implements LeaveTypeService {
 
     @Override
     public ResponseDto deleteLeaveType(String id) {
-        LeaveType leaveType = leaveTypeRepository.findById(id).orElseThrow(() -> new ApiRequestException("Leave type not found"));
         try {
+            LeaveType leaveType = leaveTypeRepository.findById(id).orElseThrow(() -> new ApiRequestException("Leave type not found"));
+            leaveTypeRepository.delete(leaveType);
             return new ResponseDto(HttpStatus.OK, "Leave type deleted successfully", id);
         } catch (Exception e) {
             throw new ApiRequestException(e.getMessage());

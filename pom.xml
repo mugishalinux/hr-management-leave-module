@@ -115,7 +115,7 @@
 		<repository>
 			<id>internal.repo</id>
 			<name>Internal repo</name>
-			<url>file:///home/anobraza/Documents/personal/project/backend/bk_challenge</url>
+			<url>file:///home/paccy/Documents/personal/project/backend/hr-management-system</url>
 		</repository>
 	</distributionManagement>
 	<build>

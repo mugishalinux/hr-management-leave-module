@@ -17,13 +17,12 @@ import org.springframework.web.bind.annotation.*;
 public class DepartmentController {
 
     private final DepartmentService departmentService;
-
-    @PostMapping
+    @PostMapping("/create")
     public ResponseDto create(@Valid @RequestBody CreateDepartmentDto createDepartmentDto) {
         return departmentService.createDepartment(createDepartmentDto);
     }
 
-    @GetMapping
+    @GetMapping("/list")
     public ResponseEntity<Page<Department>> getAllDepartments(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int sizePage,
@@ -35,12 +34,12 @@ public class DepartmentController {
         return departmentService.getDepartmentById(id);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/update/{id}")
     public ResponseDto update(@Valid @PathVariable String id, @RequestBody CreateDepartmentDto createDepartmentDto) {
         return departmentService.updateDepartment(id, createDepartmentDto);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ResponseDto delete(@PathVariable String id) {
         return departmentService.deleteDepartment(id);
     }

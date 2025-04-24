@@ -3,9 +3,12 @@ package com.leave.management.system.util;
 
 
 import com.leave.management.system.enums.UserPermission;
+import com.leave.management.system.model.LeaveBalance;
 import com.leave.management.system.model.Permissions;
 import com.leave.management.system.model.User;
+import com.leave.management.system.repository.LeaveBalanceRepository;
 import com.leave.management.system.repository.UserRepository;
+import com.leave.management.system.service.leaveBalance.LeaveBalanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class Initializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LeaveBalanceService leaveBalanceService;
 
     @Override
     public void run(String... args) {
@@ -34,6 +38,8 @@ public class Initializer implements CommandLineRunner {
             user.setPermissions(UserPermission.ADMIN);
             user.setAccountEnabled(true);
             userRepository.save(user);
+            LeaveBalance leaveBalance = new LeaveBalance();
+            leaveBalanceService.createBalanceForUser(user.getId());
             System.out.println("✅ Admin user seeded");
         } else {
             System.out.println("ℹ️ Admin user already exists, skipping seeding");
