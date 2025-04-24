@@ -88,6 +88,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/leave-type/list").authenticated()
                         .requestMatchers("/api/leave-policy").hasAuthority("ADMIN")
                         .requestMatchers("/approve-pending-applications").authenticated()
+                        .requestMatchers("/api/notifications").authenticated()
                         .anyRequest().permitAll() // ✅ allow any other request for now (dev mode)
                 );
 

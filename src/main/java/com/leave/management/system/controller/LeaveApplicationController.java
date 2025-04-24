@@ -5,7 +5,6 @@ import com.leave.management.system.dto.leaveApplication.LeaveApplicationDto;
 import com.leave.management.system.dto.leaveApplication.*;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.LeaveApplicationStatus;
-import com.leave.management.system.exceptions.ApiRequestException;
 import com.leave.management.system.model.LeaveApplication;
 import com.leave.management.system.service.leaveApplications.LeaveApplicationService;
 import jakarta.validation.Valid;
@@ -14,8 +13,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -94,6 +91,16 @@ public class LeaveApplicationController {
         Sort.Order order = new Sort.Order(Sort.Direction.fromString(sort[1]), sort[0]);
         Pageable pageable = PageRequest.of(page, size, Sort.by(order));
         return ResponseEntity.ok(leaveApplicationService.getPendingApplicationsForApprover(pageable));
+    }
+    @GetMapping("/team-calendar")
+    public ResponseEntity<List<TeamLeaveCalendarDto>> getTeamCalendar(
+            @RequestParam(required = false) String teamId,
+            @RequestParam(required = false) String departmentId) {
+        System.out.println("teamId = " + teamId);
+        System.out.println("departmentId = " + departmentId);
+        List<TeamLeaveCalendarDto> calendarEntries =
+                leaveApplicationService.getTeamCalendar(teamId, departmentId);
+        return ResponseEntity.ok(calendarEntries);
     }
 
 }

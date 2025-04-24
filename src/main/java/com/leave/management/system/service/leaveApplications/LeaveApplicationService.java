@@ -33,4 +33,6 @@ public interface LeaveApplicationService {
 
     ResponseDto approveOrRejectLeave(String applicationId, LeaveApplicationStatus status, String comment);
 
+    List<TeamLeaveCalendarDto> getTeamCalendar(String teamId, String departmentId);
+
 }

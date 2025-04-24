@@ -6,7 +6,7 @@ import com.leave.management.system.constants.HolidayDescriptionConstants;
 import com.leave.management.system.dto.leaveApplication.*;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.LeaveApplicationStatus;
-import com.leave.management.system.enums.UserPermission;
+import com.leave.management.system.enums.NofiticationStatus;
 import com.leave.management.system.exceptions.ApiRequestException;
 import com.leave.management.system.kafka.KafkaProducerService;
 import com.leave.management.system.model.*;
@@ -15,10 +15,10 @@ import com.leave.management.system.repository.LeaveBalanceRepository;
 import com.leave.management.system.repository.LeaveTypeRepository;
 import com.leave.management.system.repository.UserRepository;
 import com.leave.management.system.security.SecurityUtils;
+import com.leave.management.system.service.notification.NotificationService;
 import com.leave.management.system.util.helpers.DateUtils;
 import com.leave.management.system.util.helpers.LeaveValidationUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,6 +38,7 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
     private final UserRepository userRepository;
     private final SecurityUtils securityUtils;
     private final KafkaProducerService kafkaProducerService;
+    private final NotificationService notificationService;
 
     @Override
     public ResponseDto applyForLeave(LeaveApplicationDto dto) {
@@ -128,6 +129,8 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
             application.setStatus(LeaveApplicationStatus.PENDING);
             application.setCreatedBy(currentUser);
             application.setUpdatedBy(currentUser);
+            String  notificationMessage = "";
+            notificationMessage = STR."\{currentUser.getFullName()} Your leave application was successfully submitted, wait shortly for the management decision";
             leaveApplicationRepository.save(application);
 
             String leadEmail = "";
@@ -142,7 +145,13 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
 
             String messageSender = currentUser.getFullName() + "," + leadEmail + "," + leaveType.getName() + "," + teamLeaderNames;
             kafkaProducerService.sendMessage("leave-submitted", messageSender);
-
+            // update the Leave application
+            Notification notification= Notification.builder()
+                    .leaveApplication(application)
+                    .description(notificationMessage)
+                    .status(NofiticationStatus.UNREAD)
+                    .build();
+            notificationService.saveNotification(notification);
             return new ResponseDto(HttpStatus.CREATED, "Leave application submitted", application.getId());
 
         } catch (Exception e) {
@@ -292,8 +301,7 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
                 }
 
                 if ((usedDays + daysRequested) > leaveType.getDaysLimit()) {
-                    throw new ApiRequestException("You have exceeded the maximum allowed days for this leave type. Limit: "
-                            + leaveType.getDaysLimit() + ", Already used: " + usedDays);
+                    throw new ApiRequestException(STR."You have exceeded the maximum allowed days for this leave type. Limit: \{leaveType.getDaysLimit()}, Already used: \{usedDays}");
                 }
             }
 
@@ -304,8 +312,15 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
             application.setReason(dto.getReason());
             application.setAttachmentPath(dto.getAttachmentPath());
             application.setUpdatedBy(currentUser);
-
+            String  notificationMessage = "";
+            notificationMessage = STR."\{currentUser.getFullName()} Your leave application was successfully updated, wait shortly for the management decision";
             leaveApplicationRepository.save(application);
+            // update the Leave application
+            Notification notification= Notification.builder()
+                    .leaveApplication(application)
+                    .description(notificationMessage)
+                    .status(NofiticationStatus.UNREAD)
+                    .build();
             return new ResponseDto(HttpStatus.OK, "Leave application updated", application.getId());
         } catch (Exception e) {
             throw new ApiRequestException(e.getMessage());
@@ -351,7 +366,7 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
         application.setReviewComment(comment);
         application.setReviewedBy(currentUser);
         application.setUpdatedBy(currentUser);
-
+        String notificationMessage = "";
         if (status == LeaveApplicationStatus.APPROVED && application.getLeaveType().isAffectsBalance()) {
             LeaveBalance balance = leaveBalanceRepository.findByUser(application.getUser())
                     .orElseThrow(() -> new ApiRequestException("Leave balance not found"));
@@ -367,20 +382,36 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
             }
 
             balance.setRemainingDays(remaining);
+            notificationMessage = STR."\{currentUser.getFullName()} Your leave application was \{LeaveApplicationStatus.APPROVED.name()}";
             leaveBalanceRepository.save(balance);
         }
+            notificationMessage = currentUser.getFullName() + " Your leave application was " + LeaveApplicationStatus.REJECTED.name();
         leaveApplicationRepository.save(application);
-            String messageSender = application.getUser().getFullName() + "," + application.getUser().getEmail();
+            String messageSender = STR."\{application.getUser().getFullName()},\{application.getUser().getEmail()}";
             // Publish to Kafka topic
             kafkaProducerService.sendMessage("leave-submitted", messageSender);
 
             /**
              save new notification for either approve or reject
              */
+            // send to notification
+
+            Notification notification= Notification.builder()
+                    .leaveApplication(application)
+                    .description(notificationMessage)
+                    .status(NofiticationStatus.UNREAD)
+                    .build();
+            notificationService.saveNotification(notification);
         return new ResponseDto(HttpStatus.OK, "Leave application " + status.name().toLowerCase(), application.getId());
     }
     catch (Exception e) {
         throw new ApiRequestException(e.getMessage());}
     }
 
+    @Override
+    public List<TeamLeaveCalendarDto> getTeamCalendar(String teamId, String departmentId) {
+        List<TeamLeaveCalendarDto> result = leaveApplicationRepository.findTeamLeaveCalendar(teamId, departmentId);
+        System.out.println("Results found: " + result.size());
+        return result;
+    }
 }
