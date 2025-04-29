@@ -6,6 +6,7 @@ import com.leave.management.system.dto.team.UpdateTeamDto;
 import com.leave.management.system.model.Team;
 import org.springframework.data.domain.Page;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface TeamService {
@@ -17,4 +18,5 @@ public interface TeamService {
     ResponseDto assignUsersToTeam(AssignUsersToTeamDto dto);
     Optional<Team> getTeamByLeadId(String string);
     Optional<Team> getTeamByUser();
+    List<Team> getTeamsByDepartmentId(String departmentId);
 }

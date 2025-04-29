@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -60,5 +61,10 @@ public class TeamController {
     @PostMapping("/assign-users")
     public ResponseEntity<ResponseDto> assignUsersToTeam(@RequestBody @Valid AssignUsersToTeamDto dto) {
         return ResponseEntity.ok(teamService.assignUsersToTeam(dto));
+    }
+    @GetMapping("/department/{departmentId}")
+    public ResponseEntity<List<Team>> getTeamsByDepartmentId(@PathVariable String departmentId) {
+        List<Team> teams = teamService.getTeamsByDepartmentId(departmentId);
+        return ResponseEntity.ok(teams);
     }
 }

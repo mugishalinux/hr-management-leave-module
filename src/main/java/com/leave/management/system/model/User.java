@@ -1,6 +1,8 @@
 package com.leave.management.system.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.leave.management.system.enums.UserPermission;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,16 +36,15 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private UserPermission permissions; // ADMIN, STAFF, or MANAGER
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "team_id")
-    @JsonIgnore
-    private Team team; // Optional
+    @JsonBackReference
+    private Team team;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_id")
-    @JsonIgnore
-    private Department department; // Optional
-
+    @JsonBackReference
+    private Department department;
     @Transient
     private List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
 

@@ -22,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -144,5 +145,8 @@ public class TeamServiceImpl implements TeamService {
     public Optional<Team> getTeamByLeadId(String leadId) {
         return teamRepository.findByLeadId(leadId);
     }
-
+    @Override
+    public List<Team> getTeamsByDepartmentId(String departmentId) {
+        return teamRepository.findByDepartmentId(departmentId);
+    }
 }

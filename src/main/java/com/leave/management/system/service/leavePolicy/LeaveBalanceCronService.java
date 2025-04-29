@@ -1,4 +1,4 @@
-package com.leave.management.system.scheduler;
+package com.leave.management.system.service.leavePolicy;
 
 import com.leave.management.system.exceptions.ApiRequestException;
 import com.leave.management.system.model.LeaveBalance;
@@ -70,7 +70,7 @@ public class LeaveBalanceCronService {
                     balance.setTotalEntitledDays(0); // Reset entitlement for new year
                 }
 
-                balance.setTotalEntitledDays(totalAccrued);
+                balance.setTotalEntitledDays(Math.round(totalAccrued));
 
                 // Optionally: update remainingDays only if it's a new balance
                 if (balance.getId() == null) {

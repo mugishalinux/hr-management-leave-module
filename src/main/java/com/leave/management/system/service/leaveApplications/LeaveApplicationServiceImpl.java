@@ -22,12 +22,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
+import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LeaveApplicationServiceImpl implements LeaveApplicationService {
@@ -45,76 +46,53 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
         try {
             User currentUser = securityUtils.getCurrentUser();
             LeaveType leaveType = leaveTypeRepository.findById(dto.getLeaveTypeId())
-                    .orElseThrow(() -> new ApiRequestException("Leave type not found"));
+                    .orElseThrow(() -> new ApiRequestException("Leave type not found."));
 
             LeaveValidationUtils.validateLeaveApplication(dto, leaveType);
 
-            boolean exists = leaveApplicationRepository.existsByUserAndLeaveTypeAndStatus(
-                    currentUser, leaveType, LeaveApplicationStatus.PENDING);
-            if (exists) {
-                throw new ApiRequestException("You already have a pending application for this leave type");
+            boolean existsPending = leaveApplicationRepository.existsByUserAndLeaveTypeAndStatus(currentUser, leaveType, LeaveApplicationStatus.PENDING);
+            if (existsPending) {
+                throw new ApiRequestException("You already have a pending application for this leave type.");
             }
 
-            // Prevent overlapping leave dates regardless of type or status
             List<LeaveApplication> existingApplications = leaveApplicationRepository
                     .findAllByUser(currentUser, Pageable.unpaged()).getContent();
+
             for (LeaveApplication existing : existingApplications) {
                 boolean overlap = !(dto.getEndDate().isBefore(existing.getStartDate()) ||
                         dto.getStartDate().isAfter(existing.getEndDate()));
                 if (overlap) {
-                    throw new ApiRequestException(STR."You already have a leave application in the date range \{existing.getStartDate()} to \{existing.getEndDate()}");
+                    throw new ApiRequestException("You already have a leave application between " + existing.getStartDate() + " and " + existing.getEndDate());
                 }
             }
 
+            long currentRequestDays = dto.isHalfDay() ? 1 :
+                    DateUtils.calculateWorkingDays(dto.getStartDate(), dto.getEndDate(), HolidayConstants.HOLIDAYS_2025);
+
+            LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
+            LocalDate endOfYear = LocalDate.now().withMonth(12).withDayOfMonth(31);
+
+            List<LeaveApplication> approvedThisYear = leaveApplicationRepository
+                    .findByUserAndLeaveTypeAndStatusAndStartDateBetween(
+                            currentUser, leaveType, LeaveApplicationStatus.APPROVED,
+                            startOfYear, endOfYear);
+
+            long usedDays = approvedThisYear.stream()
+                    .mapToLong(a -> a.isHalfDay() ? 1 :
+                            DateUtils.calculateWorkingDays(a.getStartDate(), a.getEndDate(), HolidayConstants.HOLIDAYS_2025))
+                    .sum();
+
             if (leaveType.isAffectsBalance()) {
                 LeaveBalance balance = leaveBalanceRepository.findByUser(currentUser)
-                        .orElseThrow(() -> new ApiRequestException("Leave balance not found"));
-
-                long daysRequested = DateUtils.calculateWorkingDays(
-                        dto.getStartDate(), dto.getEndDate(), HolidayConstants.HOLIDAYS_2025);
-                if (dto.isHalfDay()) {
-                    daysRequested = 1;
+                        .orElseThrow(() -> new ApiRequestException("Leave balance not found."));
+                if ((usedDays + currentRequestDays) > balance.getTotalEntitledDays()) {
+                    throw new ApiRequestException("Exceeded entitled days. Entitlement: " + balance.getTotalEntitledDays()
+                            + ", Used: " + usedDays + ", Requested: " + currentRequestDays);
                 }
-
-                if (balance.getRemainingDays() < daysRequested) {
-                    if (balance.getRemainingDays() == 0.0) {
-                        throw new ApiRequestException("You don't have enough leave balance.");
-                    } else {
-                        throw new ApiRequestException(STR."You don't have enough leave balance. You have only \{balance.getRemainingDays()} days left.");
-                    }
-                }
-
             } else {
-                System.out.println("*********************************");
-                // Leave does NOT affect balance, check total usage against daysLimit
-                LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
-
-                LocalDate endOfYear = LocalDate.now().withMonth(12).withDayOfMonth(31);
-                System.out.println(STR."start year : \{startOfYear}");
-                System.out.println(STR."end year : \{endOfYear}");
-                List<LeaveApplication> approvedSameType = leaveApplicationRepository
-                        .findByUserAndLeaveTypeAndStatusAndStartDateBetween(
-                                currentUser, leaveType, LeaveApplicationStatus.APPROVED,
-                                startOfYear, endOfYear);
-
-                long usedDays = 0;
-                for (LeaveApplication approved : approvedSameType) {
-                    if (approved.isHalfDay()) {
-                        usedDays += 1;
-                    } else {
-                        usedDays += DateUtils.calculateWorkingDays(
-                                approved.getStartDate(), approved.getEndDate(), HolidayConstants.HOLIDAYS_2025);
-                    }
-                }
-                System.out.println(STR."used days : \{usedDays}");
-
-                long currentRequestDays = dto.isHalfDay() ? 1 :
-                        DateUtils.calculateWorkingDays(dto.getStartDate(), dto.getEndDate(), HolidayConstants.HOLIDAYS_2025);
-
-                System.out.println(STR."current request days : \{currentRequestDays}");
-
                 if ((usedDays + currentRequestDays) > leaveType.getDaysLimit()) {
-                    throw new ApiRequestException(STR."You have exceeded the maximum allowed days for this leave type. Limit: \{leaveType.getDaysLimit()}");
+                    throw new ApiRequestException("Exceeded leave type limit. Limit: " + leaveType.getDaysLimit()
+                            + ", Used: " + usedDays + ", Requested: " + currentRequestDays);
                 }
             }
 
@@ -129,33 +107,31 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
             application.setStatus(LeaveApplicationStatus.PENDING);
             application.setCreatedBy(currentUser);
             application.setUpdatedBy(currentUser);
-            String  notificationMessage = "";
-            notificationMessage = STR."\{currentUser.getFullName()} Your leave application was successfully submitted, wait shortly for the management decision";
+
             leaveApplicationRepository.save(application);
 
-            String leadEmail = "";
-            String teamLeaderNames = "";
-            if (currentUser.getTeam() != null && currentUser.getTeam().getLead() != null) {
-                User lead = currentUser.getTeam().getLead();
-                if (!lead.getId().equals(currentUser.getId())) {
-                    leadEmail = lead.getEmail();
-                    teamLeaderNames = lead.getFullName();
-                }
-            }
-
-            String messageSender = currentUser.getFullName() + "," + leadEmail + "," + leaveType.getName() + "," + teamLeaderNames;
-            kafkaProducerService.sendMessage("leave-submitted", messageSender);
-            // update the Leave application
-            Notification notification= Notification.builder()
+            // Notification
+            String notificationMessage = STR."\{currentUser.getFullName()} your leave application was successfully submitted.";
+            Notification notification = Notification.builder()
                     .leaveApplication(application)
                     .description(notificationMessage)
                     .status(NofiticationStatus.UNREAD)
                     .build();
             notificationService.saveNotification(notification);
+
+            // Kafka
+            if (currentUser.getTeam() != null && currentUser.getTeam().getLead() != null) {
+                User lead = currentUser.getTeam().getLead();
+                if (!lead.getId().equals(currentUser.getId())) {
+                    kafkaProducerService.sendMessage("leave-submitted", STR."\{currentUser.getFullName()},\{lead.getEmail()},\{leaveType.getName()},\{lead.getFullName()}");
+                }
+            }
+
             return new ResponseDto(HttpStatus.CREATED, "Leave application submitted", application.getId());
 
         } catch (Exception e) {
-            throw new ApiRequestException(e.getMessage());
+            log.error("Error applying for leave", e);
+            throw new ApiRequestException("Failed to apply for leave: " + e.getMessage());
         }
     }
 
@@ -208,7 +184,7 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
 
             return new TeamOnLeaveDto(team.getName(), userNamesOnLeave);
         } catch (Exception e) {
-            throw new ApiRequestException("Error while fetching team members on leave: " + e.getMessage());
+            throw new ApiRequestException(e.getMessage());
         }
     }
 
@@ -251,57 +227,68 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
                 .orElseThrow(() -> new ApiRequestException("Leave application not found"));
     }
 
-
     public ResponseDto updateLeaveApplication(String id, LeaveApplicationDto dto) {
         try {
             User currentUser = securityUtils.getCurrentUser();
             LeaveApplication application = leaveApplicationRepository.findById(id)
-                    .orElseThrow(() -> new ApiRequestException("Leave application not found"));
-            if(!application.getStatus().equals(LeaveApplicationStatus.PENDING)) {
-                throw new ApiRequestException(STR."You can't update leave application that already \{application.getStatus().name()}");
+                    .orElseThrow(() -> new ApiRequestException("Leave application not found."));
+
+            if (!application.getStatus().equals(LeaveApplicationStatus.PENDING)) {
+                throw new ApiRequestException("Cannot update a leave application that is already " + application.getStatus().name());
             }
+
             LeaveType leaveType = leaveTypeRepository.findById(dto.getLeaveTypeId())
-                    .orElseThrow(() -> new ApiRequestException("Leave type not found"));
+                    .orElseThrow(() -> new ApiRequestException("Leave type not found."));
 
             LeaveValidationUtils.validateLeaveApplication(dto, leaveType);
 
-            boolean exists = leaveApplicationRepository.existsByUserAndLeaveTypeAndStatus(currentUser, leaveType, LeaveApplicationStatus.PENDING)
+            boolean existsAnother = leaveApplicationRepository.existsByUserAndLeaveTypeAndStatus(currentUser, leaveType, LeaveApplicationStatus.PENDING)
                     && !application.getId().equals(id);
-
-            if (exists) {
-                throw new ApiRequestException("You already have another pending application for this leave type");
+            if (existsAnother) {
+                throw new ApiRequestException("You already have another pending application for this leave type.");
             }
 
-            long daysRequested = dto.isHalfDay() ? 1 :
+            // Check overlap excluding itself
+            List<LeaveApplication> existingApplications = leaveApplicationRepository
+                    .findAllByUser(currentUser, Pageable.unpaged()).getContent();
+            for (LeaveApplication existing : existingApplications) {
+                if (!existing.getId().equals(id)) {
+                    boolean overlap = !(dto.getEndDate().isBefore(existing.getStartDate()) ||
+                            dto.getStartDate().isAfter(existing.getEndDate()));
+                    if (overlap) {
+                        throw new ApiRequestException("Another leave application already exists from " + existing.getStartDate() + " to " + existing.getEndDate());
+                    }
+                }
+            }
+
+            long currentRequestDays = dto.isHalfDay() ? 1 :
                     DateUtils.calculateWorkingDays(dto.getStartDate(), dto.getEndDate(), HolidayConstants.HOLIDAYS_2025);
+
+            LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
+            LocalDate endOfYear = LocalDate.now().withMonth(12).withDayOfMonth(31);
+
+            List<LeaveApplication> approvedThisYear = leaveApplicationRepository
+                    .findByUserAndLeaveTypeAndStatusAndStartDateBetween(
+                            currentUser, leaveType, LeaveApplicationStatus.APPROVED,
+                            startOfYear, endOfYear);
+
+            long usedDays = approvedThisYear.stream()
+                    .filter(existing -> !existing.getId().equals(id)) // exclude this one
+                    .mapToLong(existing -> existing.isHalfDay() ? 1 :
+                            DateUtils.calculateWorkingDays(existing.getStartDate(), existing.getEndDate(), HolidayConstants.HOLIDAYS_2025))
+                    .sum();
 
             if (leaveType.isAffectsBalance()) {
                 LeaveBalance balance = leaveBalanceRepository.findByUser(currentUser)
-                        .orElseThrow(() -> new ApiRequestException("Leave balance not found"));
-
-                if (balance.getRemainingDays() < daysRequested) {
-                    throw new ApiRequestException("Insufficient leave balance. You have only " + balance.getRemainingDays() + " days left.");
+                        .orElseThrow(() -> new ApiRequestException("Leave balance not found."));
+                if ((usedDays + currentRequestDays) > balance.getTotalEntitledDays()) {
+                    throw new ApiRequestException("Exceeded entitled days. Entitlement: " + balance.getTotalEntitledDays()
+                            + ", Used: " + usedDays + ", Requested: " + currentRequestDays);
                 }
             } else {
-                LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
-                LocalDate endOfYear = LocalDate.now().withMonth(12).withDayOfMonth(31);
-
-                List<LeaveApplication> approvedSameType = leaveApplicationRepository
-                        .findByUserAndLeaveTypeAndStatusAndStartDateBetween(
-                                currentUser, leaveType, LeaveApplicationStatus.APPROVED,
-                                startOfYear, endOfYear);
-
-                long usedDays = 0;
-                for (LeaveApplication approved : approvedSameType) {
-                    if (!approved.getId().equals(id)) {
-                        usedDays += approved.isHalfDay() ? 1 :
-                                DateUtils.calculateWorkingDays(
-                                        approved.getStartDate(), approved.getEndDate(), HolidayConstants.HOLIDAYS_2025);
-                    }
-                }
-
-                if ((usedDays + daysRequested) > leaveType.getDaysLimit()) {
-                    throw new ApiRequestException(STR."You have exceeded the maximum allowed days for this leave type. Limit: \{leaveType.getDaysLimit()}, Already used: \{usedDays}");
+                if ((usedDays + currentRequestDays) > leaveType.getDaysLimit()) {
+                    throw new ApiRequestException("Exceeded leave type limit. Limit: " + leaveType.getDaysLimit()
+                            + ", Used: " + usedDays + ", Requested: " + currentRequestDays);
                 }
             }
 
@@ -312,20 +299,24 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
             application.setReason(dto.getReason());
             application.setAttachmentPath(dto.getAttachmentPath());
             application.setUpdatedBy(currentUser);
-            String  notificationMessage = "";
-            notificationMessage = STR."\{currentUser.getFullName()} Your leave application was successfully updated, wait shortly for the management decision";
+
             leaveApplicationRepository.save(application);
-            // update the Leave application
-            Notification notification= Notification.builder()
+
+            Notification notification = Notification.builder()
                     .leaveApplication(application)
-                    .description(notificationMessage)
+                    .description(STR."\{currentUser.getFullName()} your leave application was successfully updated.")
                     .status(NofiticationStatus.UNREAD)
                     .build();
-            return new ResponseDto(HttpStatus.OK, "Leave application updated", application.getId());
+            notificationService.saveNotification(notification);
+
+            return new ResponseDto(HttpStatus.OK, "Leave application updated successfully.", application.getId());
+
         } catch (Exception e) {
-            throw new ApiRequestException(e.getMessage());
+            log.error("Error updating leave application", e);
+            throw new ApiRequestException("Failed to update leave application: " + e.getMessage());
         }
     }
+
 
     @Override
     public ResponseDto deleteLeaveApplication(String id) {
@@ -338,74 +329,94 @@ public class LeaveApplicationServiceImpl implements LeaveApplicationService {
 
     @Override
     public ResponseDto approveOrRejectLeave(String applicationId, LeaveApplicationStatus status, String comment) {
-        try{
-        User currentUser = securityUtils.getCurrentUser();
+        try {
+            User currentUser = securityUtils.getCurrentUser();
 
-        if (!(currentUser.getPermissions().name().equals("ADMIN") || currentUser.getPermissions().name().equals("MANAGER"))) {
-            throw new ApiRequestException("You are not authorized to approve or reject leave applications");
-        }
-
-        if(status == LeaveApplicationStatus.REJECTED && comment == null) {
-            throw new ApiRequestException("Comment cannot be empty, since leave application is rejected");
-        }
-
-        LeaveApplication application = leaveApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new ApiRequestException("Leave application not found"));
-
-        if (currentUser.getPermissions().name().equals("MANAGER") &&
-                (currentUser.getTeam() == null || application.getUser().getTeam() == null ||
-                        !currentUser.getTeam().getId().equals(application.getUser().getTeam().getId()))) {
-            throw new ApiRequestException("Managers can only approve/reject leave requests within their own team");
-        }
-
-        if (!application.getStatus().equals(LeaveApplicationStatus.PENDING)) {
-            throw new ApiRequestException("Only pending applications can be approved or rejected");
-        }
-
-        application.setStatus(status);
-        application.setReviewComment(comment);
-        application.setReviewedBy(currentUser);
-        application.setUpdatedBy(currentUser);
-        String notificationMessage = "";
-        if (status == LeaveApplicationStatus.APPROVED && application.getLeaveType().isAffectsBalance()) {
-            LeaveBalance balance = leaveBalanceRepository.findByUser(application.getUser())
-                    .orElseThrow(() -> new ApiRequestException("Leave balance not found"));
-
-            long daysRequested = DateUtils.calculateWorkingDays(application.getStartDate(), application.getEndDate(), HolidayConstants.HOLIDAYS_2025);
-            if (application.isHalfDay()) {
-                daysRequested = 1;
+            if (!(currentUser.getPermissions().name().equals("ADMIN") || currentUser.getPermissions().name().equals("MANAGER"))) {
+                throw new ApiRequestException("You are not authorized to approve or reject leave applications");
             }
 
-            double remaining = balance.getRemainingDays() - daysRequested;
-            if (remaining < 0) {
-                throw new ApiRequestException("Cannot approve. User has insufficient balance.");
+            if (status == LeaveApplicationStatus.REJECTED && (comment == null || comment.trim().isEmpty())) {
+                throw new ApiRequestException("Comment cannot be empty, since leave application is rejected");
             }
 
-            balance.setRemainingDays(remaining);
-            notificationMessage = STR."\{currentUser.getFullName()} Your leave application was \{LeaveApplicationStatus.APPROVED.name()}";
-            leaveBalanceRepository.save(balance);
-        }
-            notificationMessage = currentUser.getFullName() + " Your leave application was " + LeaveApplicationStatus.REJECTED.name();
-        leaveApplicationRepository.save(application);
-            String messageSender = STR."\{application.getUser().getFullName()},\{application.getUser().getEmail()}";
-            // Publish to Kafka topic
-            kafkaProducerService.sendMessage("leave-submitted", messageSender);
+            LeaveApplication application = leaveApplicationRepository.findById(applicationId)
+                    .orElseThrow(() -> new ApiRequestException("Leave application not found"));
 
-            /**
-             save new notification for either approve or reject
-             */
-            // send to notification
+            if (currentUser.getPermissions().name().equals("MANAGER") &&
+                    (currentUser.getTeam() == null || application.getUser().getTeam() == null ||
+                            !currentUser.getTeam().getId().equals(application.getUser().getTeam().getId()))) {
+                throw new ApiRequestException("Managers can only approve/reject leave requests within their own team");
+            }
 
-            Notification notification= Notification.builder()
+            if (!application.getStatus().equals(LeaveApplicationStatus.PENDING)) {
+                throw new ApiRequestException("Only pending applications can be approved or rejected");
+            }
+
+            if (status == LeaveApplicationStatus.APPROVED) {
+                LeaveType leaveType = application.getLeaveType();
+                long daysRequested = application.isHalfDay() ? 1 :
+                        DateUtils.calculateWorkingDays(application.getStartDate(), application.getEndDate(), HolidayConstants.HOLIDAYS_2025);
+
+                if (leaveType.isAffectsBalance()) {
+                    LeaveBalance balance = leaveBalanceRepository.findByUser(application.getUser())
+                            .orElseThrow(() -> new ApiRequestException("Leave balance not found."));
+
+                    long startOfYearUsedDays = leaveApplicationRepository
+                            .findByUserAndLeaveTypeAndStatusAndStartDateBetween(
+                                    application.getUser(), leaveType, LeaveApplicationStatus.APPROVED,
+                                    LocalDate.now().withDayOfYear(1),
+                                    LocalDate.now().withMonth(12).withDayOfMonth(31)
+                            )
+                            .stream()
+                            .mapToLong(existing -> existing.isHalfDay() ? 1 :
+                                    DateUtils.calculateWorkingDays(existing.getStartDate(), existing.getEndDate(), HolidayConstants.HOLIDAYS_2025))
+                            .sum();
+
+                    if ((startOfYearUsedDays + daysRequested) > balance.getTotalEntitledDays()) {
+                        throw new ApiRequestException("Approval failed: User would exceed total entitled days " + balance.getTotalEntitledDays() + " Currently used: " + startOfYearUsedDays + " Requested: " + daysRequested);
+                    }
+
+                } else {
+                    // Does not affect balance -> check against leave type limit
+                    long startOfYearUsedDays = leaveApplicationRepository
+                            .findByUserAndLeaveTypeAndStatusAndStartDateBetween(
+                                    application.getUser(), leaveType, LeaveApplicationStatus.APPROVED,
+                                    LocalDate.now().withDayOfYear(1),
+                                    LocalDate.now().withMonth(12).withDayOfMonth(31)
+                            )
+                            .stream()
+                            .mapToLong(existing -> existing.isHalfDay() ? 1 :
+                                    DateUtils.calculateWorkingDays(existing.getStartDate(), existing.getEndDate(), HolidayConstants.HOLIDAYS_2025))
+                            .sum();
+
+                    if ((startOfYearUsedDays + daysRequested) > leaveType.getDaysLimit()) {
+                        throw new ApiRequestException("Approval failed: User would exceed allowed limit for this leave type " + leaveType.getDaysLimit() + " days :" + " Already used: " + startOfYearUsedDays + " Requested " + daysRequested);
+                    }
+                }
+            }
+
+            String notificationMessage = STR."\{application.getUser().getFullName()} Your leave application was \{status}";
+            application.setStatus(status);
+            application.setReviewComment(comment);
+            application.setReviewedBy(currentUser);
+            application.setUpdatedBy(currentUser);
+            leaveApplicationRepository.save(application);
+
+            kafkaProducerService.sendMessage("leave-submitted", STR."\{application.getUser().getFullName()},\{application.getUser().getEmail()}");
+
+            Notification notification = Notification.builder()
                     .leaveApplication(application)
                     .description(notificationMessage)
                     .status(NofiticationStatus.UNREAD)
                     .build();
             notificationService.saveNotification(notification);
-        return new ResponseDto(HttpStatus.OK, "Leave application " + status.name().toLowerCase(), application.getId());
-    }
-    catch (Exception e) {
-        throw new ApiRequestException(e.getMessage());}
+
+            return new ResponseDto(HttpStatus.OK, "Leave application " + status.name().toLowerCase(), application.getId());
+
+        } catch (Exception e) {
+            throw new ApiRequestException(e.getMessage());
+        }
     }
 
     @Override

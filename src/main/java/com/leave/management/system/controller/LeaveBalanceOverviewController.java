@@ -13,8 +13,9 @@ public class LeaveBalanceOverviewController {
     private final LeaveBalanceOverviewService leaveBalanceOverviewService;
 
     @GetMapping("")
-    public LeaveBalanceOverviewDto getOverview() {
-        return leaveBalanceOverviewService.getCurrentUserLeaveOverview();
+    public LeaveBalanceOverviewDto getOverview(           @RequestParam() String userId,
+                                                          @RequestParam() String leaveTypeId) {
+        return leaveBalanceOverviewService.getCurrentUserLeaveOverview(userId, leaveTypeId);
     }
     @GetMapping("/details")
     public LeaveBalanceOverviewDto getOverviewDetails(            @RequestParam() String userId,

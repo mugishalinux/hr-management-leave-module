@@ -6,13 +6,16 @@ import com.leave.management.system.dto.leaveApplication.*;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.LeaveApplicationStatus;
 import com.leave.management.system.model.LeaveApplication;
+import com.leave.management.system.model.TeamCalendarDto;
 import com.leave.management.system.service.leaveApplications.LeaveApplicationService;
+import com.leave.management.system.service.leaveApplications.TeamLeavesImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +28,7 @@ import java.util.List;
 public class LeaveApplicationController {
 
     private final LeaveApplicationService leaveApplicationService;
+    public final TeamLeavesImpl teamLeaves;
 
     @PostMapping("/submit")
     public ResponseEntity<ResponseDto> applyForLeave(@Valid @RequestBody LeaveApplicationDto dto) {
@@ -92,6 +96,16 @@ public class LeaveApplicationController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(order));
         return ResponseEntity.ok(leaveApplicationService.getPendingApplicationsForApprover(pageable));
     }
+    @GetMapping("/api/calendar/department-team")
+    public ResponseEntity<List<TeamCalendarDto>> getTeamByCalendar(
+            @RequestParam(required = false) String departmentId,
+            @RequestParam(required = false) String teamId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate
+    ) {
+        List<TeamCalendarDto> calendar = teamLeaves.getTeamCalendar(departmentId, teamId, fromDate, toDate);
+        return ResponseEntity.ok(calendar);
+    }
     @GetMapping("/team-calendar")
     public ResponseEntity<List<TeamLeaveCalendarDto>> getTeamCalendar(
             @RequestParam(required = false) String teamId,
@@ -102,5 +116,6 @@ public class LeaveApplicationController {
                 leaveApplicationService.getTeamCalendar(teamId, departmentId);
         return ResponseEntity.ok(calendarEntries);
     }
+
 
 }

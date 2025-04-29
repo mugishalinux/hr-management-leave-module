@@ -19,9 +19,6 @@ public class UpdateUserDto {
 
     @NotBlank(message = "Permission (role) is required")
     private String permissions;
-
-    // Optional references
-    private String teamId;
     @NotBlank(message = "Department id required")
     private String departmentId;
     @NotBlank(message = "Profile image path is required")

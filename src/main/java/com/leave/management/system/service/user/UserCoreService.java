@@ -1,4 +1,4 @@
-package com.leave.management.system.service;
+package com.leave.management.system.service.user;
 
 import com.leave.management.system.model.User;
 import com.leave.management.system.repository.UserRepository;

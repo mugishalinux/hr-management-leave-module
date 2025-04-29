@@ -11,6 +11,7 @@ import com.leave.management.system.util.helpers.DateUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -25,18 +26,37 @@ public class LeaveBalanceOverviewServiceImpl implements LeaveBalanceOverviewServ
     private final LeaveApplicationRepository leaveApplicationRepository;
 
     @Override
-    public LeaveBalanceOverviewDto getCurrentUserLeaveOverview() {
+    public LeaveBalanceOverviewDto getCurrentUserLeaveOverview(String userId, String leaveTypeId) {
         try {
+
             User user = securityUtils.getCurrentUser();
             LeaveBalance balance = leaveBalanceRepository.findByUser(user)
                     .orElseThrow(() -> new ApiRequestException("Leave balance not found"));
 
             LeavePolicy policy = leavePolicyRepository.findAll().stream().findFirst()
                     .orElseThrow(() -> new ApiRequestException("Leave policy not found"));
+            LeaveType leaveType = leaveTypeRepository.findById(leaveTypeId)
+                    .orElseThrow(() -> new ApiRequestException("Leave type not found"));
 
+
+            LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
+            LocalDate endOfYear = LocalDate.now().withMonth(12).withDayOfMonth(31);
+
+            List<LeaveApplication> approvedLeaves = leaveApplicationRepository
+                    .findByUserAndLeaveTypeAndStatusAndStartDateBetween(
+                            user, leaveType, LeaveApplicationStatus.APPROVED,
+                            startOfYear, endOfYear);
+
+            long daysUsed = approvedLeaves.stream()
+                    .mapToLong(app -> app.isHalfDay() ? 1 :
+                            DateUtils.calculateWorkingDays(app.getStartDate(), app.getEndDate(), HolidayConstants.HOLIDAYS_2025))
+                    .sum();
+
+            double daysLimit = balance.getTotalEntitledDays();
+            double remaining = daysLimit - daysUsed;
 
             return new LeaveBalanceOverviewDto(
-                    balance.getRemainingDays(),
+                    remaining,
                     balance.getTotalEntitledDays(),
                     policy.getAccrualRate()
             );
@@ -58,10 +78,17 @@ public class LeaveBalanceOverviewServiceImpl implements LeaveBalanceOverviewServ
                 throw new ApiRequestException("This method is for leave types that do NOT affect balance");
             }
 
-            List<LeaveApplication> approvedLeaves = leaveApplicationRepository.findAllByUserAndLeaveTypeAndStatus(user, leaveType, LeaveApplicationStatus.APPROVED);
+            LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
+            LocalDate endOfYear = LocalDate.now().withMonth(12).withDayOfMonth(31);
+
+            List<LeaveApplication> approvedLeaves = leaveApplicationRepository
+                    .findByUserAndLeaveTypeAndStatusAndStartDateBetween(
+                            user, leaveType, LeaveApplicationStatus.APPROVED,
+                            startOfYear, endOfYear);
 
             long daysUsed = approvedLeaves.stream()
-                    .mapToLong(app -> DateUtils.calculateWorkingDays(app.getStartDate(), app.getEndDate(), HolidayConstants.HOLIDAYS_2025))
+                    .mapToLong(app -> app.isHalfDay() ? 1 :
+                            DateUtils.calculateWorkingDays(app.getStartDate(), app.getEndDate(), HolidayConstants.HOLIDAYS_2025))
                     .sum();
 
             double daysLimit = leaveType.getDaysLimit();
@@ -69,7 +96,7 @@ public class LeaveBalanceOverviewServiceImpl implements LeaveBalanceOverviewServ
 
             return new LeaveBalanceOverviewDto(remaining, daysLimit, 0);
         } catch (Exception e) {
-            throw new ApiRequestException(e.getMessage());
+            throw new ApiRequestException("Failed to get custom leave balance: " + e.getMessage());
         }
     }
 }

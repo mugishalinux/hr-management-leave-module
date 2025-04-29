@@ -48,5 +48,24 @@ public interface LeaveApplicationRepository extends JpaRepository<LeaveApplicati
     List<TeamLeaveCalendarDto> findTeamLeaveCalendar(@Param("teamId") String teamId,
                                                      @Param("departmentId") String departmentId);
 
+// LeaveApplicationRepository.java
+
+    @Query("SELECT l FROM LeaveApplication l WHERE l.status = 'APPROVED'")
+    List<LeaveApplication> findApproved();
+
+    @Query("SELECT l FROM LeaveApplication l WHERE l.status = 'APPROVED' AND l.user.department.id = :departmentId")
+    List<LeaveApplication> findApprovedByDepartment(@Param("departmentId") String departmentId);
+
+    @Query("SELECT l FROM LeaveApplication l WHERE l.status = 'APPROVED' AND l.user.team.id = :teamId")
+    List<LeaveApplication> findApprovedByTeam(@Param("teamId") String teamId);
+
+    @Query("SELECT l FROM LeaveApplication l WHERE l.status = 'APPROVED' AND l.user.department.id = :departmentId AND l.user.team.id = :teamId")
+    List<LeaveApplication> findApprovedByDepartmentAndTeam(@Param("departmentId") String departmentId, @Param("teamId") String teamId);
+
+    @Query("SELECT l FROM LeaveApplication l " +
+            "WHERE l.status = 'APPROVED' " +
+            "AND l.startDate <= :endDate " +
+            "AND l.endDate >= :startDate")
+    List<LeaveApplication> findApprovedByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
 }

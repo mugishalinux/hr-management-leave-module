@@ -2,10 +2,9 @@ package com.leave.management.system.controller;
 
 import com.leave.management.system.dto.user.*;
 import com.leave.management.system.dto.response.ResponseDto;
-import com.leave.management.system.model.LeaveApplication;
 import com.leave.management.system.model.User;
 import com.leave.management.system.repository.UserRepository;
-import com.leave.management.system.service.UserService;
+import com.leave.management.system.service.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -66,7 +65,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
     @GetMapping("/list/all")
-    public ResponseEntity<Page<User>> listAllUsers(
+    public ResponseEntity<Page<UserDTO>> listAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
@@ -74,9 +73,8 @@ public class UserController {
         Sort.Direction direction = Sort.Direction.fromString(sort[1]);
         String sortBy = sort[0];
         Pageable pageable = PageRequest.of(page, size, Sort.by(new Sort.Order(direction, sortBy)));
-
-        Page<User> users = userRepository.findAll(pageable);
-        return ResponseEntity.ok(users);
+        Page<UserDTO> usersPage = userService.fetchingAllUsers(pageable);
+        return ResponseEntity.ok(usersPage);
     }
     @GetMapping("/single")
     public ResponseEntity<User> getSingleUserByid() {
@@ -93,5 +91,11 @@ public class UserController {
     ) {
         Page<User> users = userService.getAllUsersByTeamId(teamId, page, size, sortBy);
         return ResponseEntity.ok(users);
+    }
+
+
+    @PostMapping("/verifyToken")
+    public ResponseEntity<LoginResponseDto> verifyOtp(@Valid @RequestBody VerifyTokenDto request, HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(userService.validateToken(request.getToken(),httpRequest));
     }
 }

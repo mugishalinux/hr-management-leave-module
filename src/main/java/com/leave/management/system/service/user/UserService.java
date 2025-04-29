@@ -1,12 +1,11 @@
-package com.leave.management.system.service;
-
+package com.leave.management.system.service.user;
+import org.json.JSONObject;
 import com.leave.management.system.dto.user.*;
 import com.leave.management.system.dto.response.ResponseDto;
 import com.leave.management.system.enums.UserPermission;
 import com.leave.management.system.exceptions.ApiRequestException;
 import com.leave.management.system.model.Department;
 import com.leave.management.system.model.LeaveBalance;
-import com.leave.management.system.model.Team;
 import com.leave.management.system.model.User;
 import com.leave.management.system.repository.DepartmentRepository;
 import com.leave.management.system.repository.TeamRepository;
@@ -18,16 +17,20 @@ import com.leave.management.system.util.helpers.PermissionUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +43,8 @@ public class UserService {
     private final JwtService jwtService;
     private final SecurityUtils securityUtils;
     private final LeaveBalanceService leaveBalanceService;
-
+    @Value("${microsoft.graph.api.url}")
+    private String microsoftGraphApiUrl;
 
     public User registerUser(RegisterUserDto dto) {
         try{
@@ -50,17 +54,15 @@ public class UserService {
             User user = new User();
             user.setEmail(dto.getEmail());
             user.setProfile(dto.getProfileImg());
+
             user.setFullName(dto.getFullName());
             if (dto.getDepartmentId() != null) {
                 Department department = departmentRepository.findById(dto.getDepartmentId())
                         .orElseThrow(() -> new ApiRequestException("Department ID does not exist."));
                 user.setDepartment(department);
             }
-            if(!dto.getTeamId().isBlank() || !dto.getTeamId().isEmpty()) {
-                Team team = teamRepository.findById(dto.getTeamId()).orElseThrow(() -> new ApiRequestException("Team ID does not exist."));
-                user.setTeam(team);
-            }
-            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+
+            user.setPassword(passwordEncoder.encode("admin"));
             UserPermission permission = PermissionUtils.validateAndParsePermission(dto.getPermissions()); // returns UserPermission.ADMIN
             user.setPermissions(permission);
             user.setAccountEnabled(false);
@@ -82,6 +84,31 @@ public class UserService {
             throw new ApiRequestException(e.getMessage());
         }
     }
+    public Page<UserDTO> fetchingAllUsers(Pageable pageable) {
+        Page<User> users = userRepository.findAll(pageable);
+
+        List<UserDTO> userDtos = users.stream().map(user -> {
+            UserDTO dto = new UserDTO();
+            dto.setId(user.getId());
+            dto.setFullName(user.getFullName());
+            dto.setEmail(user.getEmail());
+            dto.setProfile(user.getProfile());
+            dto.setPermissions(user.getPermissions().name());
+            dto.setAccountEnabled(user.isAccountEnabled());
+
+            if (user.getTeam() != null) {
+                dto.setTeamId(user.getTeam().getId().toString());
+                dto.setTeamName(user.getTeam().getName());
+            }
+            if (user.getDepartment() != null) {
+                dto.setDepartmentId(user.getDepartment().getId().toString());
+                dto.setDepartmentName(user.getDepartment().getName());
+            }
+            return dto;
+        }).collect(Collectors.toList());
+
+        return new PageImpl<>(userDtos, pageable, users.getTotalElements());
+    }
     public User updateUser(String id, UpdateUserDto dto) {
         try {
             Optional<User> optionalUser = userRepository.findById(id);
@@ -96,9 +123,6 @@ public class UserService {
             }
             if (dto.getPermissions() != null) {
                 UserPermission permission = PermissionUtils.validateAndParsePermission(dto.getPermissions()); //
-                if(permission.name().equals("ADMIN")) {
-                    throw new ApiRequestException("Admin permission is denied");
-                }// returns UserPermission.ADMIN
                 user.setPermissions(permission);
             }
             if (dto.getDepartmentId() != null) {
@@ -106,10 +130,7 @@ public class UserService {
                         .orElseThrow(() -> new ApiRequestException("Department ID does not exist."));
                 user.setDepartment(department);
             }
-            if(!dto.getTeamId().isBlank() || !dto.getTeamId().isEmpty()) {
-                Team team = teamRepository.findById(dto.getTeamId()).orElseThrow(() -> new ApiRequestException("Team ID does not exist."));
-                user.setTeam(team);
-            }
+
             return userRepository.save(user);
         }catch (Exception e) {
             throw new ApiRequestException(e.getMessage());
@@ -130,6 +151,9 @@ public class UserService {
     public LoginResponseDto loginWithDetails(String username, String password, HttpServletRequest request) {
         User user = userRepository.findByEmail(username);
 
+        if (username.toLowerCase().endsWith("@ist.com")) {
+            throw new ApiRequestException("Login with @ist.com domain is not allowed.");
+        }
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
             throw new ApiRequestException("Invalid username or password");
         }else if(!user.isAccountEnabled()) {
@@ -213,4 +237,33 @@ public class UserService {
 //            throw new ApiRequestException(e.getMessage());
 //        }
 //    }
+
+public LoginResponseDto validateToken(String accessToken,HttpServletRequest request) {
+    try {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + accessToken);
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                microsoftGraphApiUrl + "/me",
+                HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(headers),
+                String.class
+        );
+        System.out.println(response.getBody());
+        if(!response.getStatusCode().is2xxSuccessful()) throw new ApiRequestException("User authentication failed or token expired");
+        JSONObject responseBody = new JSONObject(response.getBody());
+        String email = responseBody.getString("userPrincipalName");
+        User user = userRepository.findByEmail(email);
+        if(user==null) throw new ApiRequestException("You are not allowed to use system please contact system administrator");
+        String token = jwtService.generateToken(user, request);
+        return new LoginResponseDto(user.getId(), token, user.getPermissions().name(), user.getDepartment().getId());
+    } catch (HttpClientErrorException.Unauthorized e) {
+        throw new ApiRequestException("Unauthorized user or token is invalid");
+    } catch (Exception e) {
+        e.printStackTrace();
+        throw new ApiRequestException("OTP verification failed");
+    }
+}
+
 }

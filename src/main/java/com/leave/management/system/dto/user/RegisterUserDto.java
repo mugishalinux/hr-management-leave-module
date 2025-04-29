@@ -16,15 +16,9 @@ public class RegisterUserDto {
     @Email(message = "Please provide a valid email address")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 5, message = "Password must be at least 5 characters")
-    private String password;
-
     @NotBlank(message = "Permission (role) is required")
     private String permissions;
 
-    // Optional references
-    private String teamId;
     @NotBlank(message = "Department id required")
     private String departmentId;
     @NotBlank(message = "Profile image path is required")
